@@ -50,9 +50,11 @@ Si une session ne repond pas a un message apres 2 minutes :
 3. **Si le PID est vivant mais ne repond pas** → escalader le diagnostic :
    a. Verifier les sessions Claude actives : `pgrep -af claude`
    b. Lister les fenetres terminal : `osascript -e 'tell application "System Events" to get name of every window of every process whose name contains "Terminal" or name contains "iTerm"'`
-   c. **DERNIER RECOURS** — prendre un screenshot du desktop pour voir visuellement l'etat de la session :
-      `mcp__customspaces__window_screenshot` ou `mcp__customspaces__current_state`
-      Analyser le screenshot pour comprendre : la session est-elle bloquee ? Attend-elle une permission ? Est-elle en train de travailler ? Le watcher est-il actif ?
+   c. **DERNIER RECOURS** — si un MCP de controle desktop est disponible (experimental) :
+      Tenter `mcp__customspaces__window_screenshot` ou `mcp__customspaces__current_state`
+      Si disponible, analyser le screenshot pour comprendre l'etat de la session.
+      Si le MCP n'est pas disponible ou echoue, informer l'utilisateur :
+      "La session <nom> (PID <pid>) ne repond pas. Son watcher est probablement mort. Tu peux relancer /say-to-claude-team connect dans cette session."
 4. **Si le skill n'est pas installe ou pas connecte** → informer l'utilisateur et proposer d'installer le skill dans cette session
 
 **Le controle du desktop (screenshot) ne doit etre utilise qu'en dernier recours**, apres avoir epuise les diagnostics en ligne de commande. Ne pas en abuser.
