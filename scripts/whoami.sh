@@ -24,7 +24,7 @@ fi
 MY_BIT=$(cat "$BIT_FILE")
 MY_NAME=$(jq -r --argjson b "$MY_BIT" \
     '[.sessions | to_entries[] | select(.value.bit == $b) | .key] | first // "unknown"' \
-    "${TEAM_QUEUE_DIR}/registry.json" 2>/dev/null)
+    "${TEAM_QUEUE_DIR}/registry.json" 2>/dev/null) || MY_NAME="unknown"
 
 echo "${MY_NAME} ${MY_BIT}"
 exit 0

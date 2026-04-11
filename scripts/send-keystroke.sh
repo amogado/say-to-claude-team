@@ -1,25 +1,53 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-# send-keystroke.sh <window-index> <text>
+# send-keystroke.sh <window-index|list|all-claude> <text>
 # Envoie des frappes clavier dans une fenetre Terminal spécifique.
-# Utile pour le grand-orchestrateur qui doit interagir avec les sessions.
 # Exit codes: 0=ok, 1=erreur, 2=usage
 
-if [ $# -lt 2 ]; then
-    echo "Usage: $0 <window-index|all-claude> <text>" >&2
-    echo "  window-index: numero de la fenetre Terminal (1-based)" >&2
-    echo "  all-claude: envoie a toutes les fenetres claude" >&2
-    echo "  text: texte a taper (Enter est ajoute automatiquement)" >&2
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 list" >&2
+    echo "       $0 <window-index> <text>" >&2
+    echo "       $0 all-claude <text>" >&2
     exit 2
 fi
 
 TARGET="$1"
 shift
+
+# Escape text for safe AppleScript embedding
+escape_for_applescript() {
+    printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
+if [ "$TARGET" = "list" ]; then
+    osascript -e '
+        tell application "Terminal"
+            set winCount to count of windows
+            set results to ""
+            repeat with i from 1 to winCount
+                try
+                    set results to results & i & ": " & name of window i & linefeed
+                on error
+                    set results to results & i & ": (unnamed)" & linefeed
+                end try
+            end repeat
+            return results
+        end tell
+    ' 2>&1
+    exit $?
+fi
+
+# From here, we need text
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 $TARGET <text>" >&2
+    exit 2
+fi
+
 TEXT="$*"
+SAFE_TEXT=$(escape_for_applescript "$TEXT")
 
 if [ "$TARGET" = "all-claude" ]; then
-    # Trouver toutes les fenetres Terminal qui contiennent "claude"
     osascript -e "
         tell application \"Terminal\"
             set winCount to count of windows
@@ -28,12 +56,12 @@ if [ "$TARGET" = "all-claude" ]; then
                 try
                     set winName to name of window i
                     if winName contains \"claude\" then
-                        set index of window i to 1
+                        set frontmost of window i to true
                         activate
                         delay 0.3
                         tell application \"System Events\"
                             tell process \"Terminal\"
-                                keystroke \"$TEXT\"
+                                keystroke \"$SAFE_TEXT\"
                                 delay 0.2
                                 keystroke return
                             end tell
@@ -46,33 +74,21 @@ if [ "$TARGET" = "all-claude" ]; then
             return \"Sent to \" & sentCount & \" claude windows\"
         end tell
     " 2>&1
-elif [ "$TARGET" = "list" ]; then
-    # Lister les fenetres Terminal
-    osascript -e "
-        tell application \"Terminal\"
-            set winCount to count of windows
-            set results to \"\"
-            repeat with i from 1 to winCount
-                try
-                    set results to results & i & \": \" & name of window i & linefeed
-                on error
-                    set results to results & i & \": (unnamed)\" & linefeed
-                end try
-            end repeat
-            return results
-        end tell
-    " 2>&1
 else
-    # Envoyer a une fenetre specifique
+    # Validate window index is numeric
+    if ! [[ "$TARGET" =~ ^[0-9]+$ ]]; then
+        echo "Error: window index must be a number, got '$TARGET'" >&2
+        exit 2
+    fi
     WIN_INDEX="$TARGET"
     osascript -e "
         tell application \"Terminal\"
-            set index of window $WIN_INDEX to 1
+            set frontmost of window $WIN_INDEX to true
             activate
             delay 0.3
             tell application \"System Events\"
                 tell process \"Terminal\"
-                    keystroke \"$TEXT\"
+                    keystroke \"$SAFE_TEXT\"
                     delay 0.2
                     keystroke return
                 end tell

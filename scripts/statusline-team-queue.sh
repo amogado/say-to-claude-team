@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -uo pipefail
 # statusline-team-queue.sh — Team Queue status for Claude Code statusline
 # Source this from statusline-command.sh: . ~/.claude/skills/say-to-claude-team/scripts/statusline-team-queue.sh
 # Sets $team_queue variable with the status string.
