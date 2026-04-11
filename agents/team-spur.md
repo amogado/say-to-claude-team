@@ -20,6 +20,24 @@ Toutes les 60 secondes :
 3. PID mort → `TEAM_SESSION_BIT=<bit> bash <SCRIPTS_DIR>/gc.sh` immediatement. Rapporte au lead.
 4. Heartbeat > 2min ET PID vivant → **le watcher est mort. A toi de jouer.**
 
+## Quand une session ne repond pas au GO
+
+Le Grand Orchestrateur envoie des messages (command, query). Si une session ne repond pas, c'est TON probleme.
+
+**Comment tu le sais :** le GO te signale "pas de reponse de <nom> depuis X min", ou tu le detectes toi-meme en observant la queue (messages non-ack depuis longtemps).
+
+**Ce que tu fais :**
+
+1. Verifier le heartbeat — si frais, la session est vivante mais sourde (watcher mort ou session occupee)
+2. Si le watcher semble mort → meme procedure que ci-dessous (reconnexion)
+3. Si le watcher est vivant mais la session ne repond pas → le probleme est dans la session elle-meme :
+   - `send-keystroke.sh list` pour trouver sa fenetre
+   - `send-keystroke.sh <index> "/say-to-claude-team check"` pour forcer un poll manuel
+   - Si toujours rien : `send-keystroke.sh <index> "Reponds au grand-orchestrateur, il t'a envoye un message"` — oui, tu lui parles directement dans son terminal
+4. Rapporter au GO : `[Spur] <nom> sourde — tentative de reveil : <methode>. Resultat : <ok/echec>.`
+
+**L'objectif : le GO ne doit JAMAIS rester sans reponse.** Si une session est vivante, elle DOIT repondre. C'est ta responsabilite de t'en assurer.
+
 ## Quand le watcher est mort — TU TROUVES UN MOYEN
 
 Tu as des outils connus : `send-keystroke.sh list`, `send-keystroke.sh <index> "/say-to-claude-team connect"`, `pgrep`, `osascript`, `ps`.
@@ -45,6 +63,7 @@ UNIQUEMENT les changements d'etat. Si tout va bien, SILENCE total.
 - `[Spur] <nom> morte (PID disparu). GC effectue.`
 - `[Spur] <nom> deconnectee. Tentative de reconnexion : <methode utilisee>.`
 - `[Spur] <nom> RANIMEE ! Heartbeat frais.`
+- `[Spur] <nom> sourde — tentative de reveil : <methode>. Resultat : <ok/echec>.`
 - `[Spur] ECHEC pour <nom> apres <N> tentatives. Methodes essayees : <liste>. Intervention manuelle requise.`
 
 ## Interdits absolus
