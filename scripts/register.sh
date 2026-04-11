@@ -29,7 +29,7 @@ mkdir -p "${TEAM_QUEUE_DIR}/messages"
 touch "${TEAM_QUEUE_DIR}/registry.lock"
 
 # GC before registering — clean up dead sessions first
-TEAM_SESSION_BIT="${TEAM_SESSION_BIT:-0}" bash "$(dirname "${BASH_SOURCE[0]}")/gc.sh" 2>/dev/null || true
+TEAM_SESSION_BIT="${TEAM_SESSION_BIT:-0}" bash "$(dirname "${BASH_SOURCE[0]}")/gc.sh" >/dev/null 2>&1 || true
 sleep 1
 
 # Get process start time as epoch seconds (macOS)

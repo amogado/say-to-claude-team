@@ -11,7 +11,7 @@ TEAM_QUEUE_DIR="${TEAM_QUEUE_DIR:-$HOME/.claude/team-queue}"
 . "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
 
 # GC before checking — clean up dead sessions first
-TEAM_SESSION_BIT="${TEAM_SESSION_BIT:-0}" bash "$(dirname "${BASH_SOURCE[0]}")/gc.sh" 2>/dev/null || true
+TEAM_SESSION_BIT="${TEAM_SESSION_BIT:-0}" bash "$(dirname "${BASH_SOURCE[0]}")/gc.sh" >/dev/null 2>&1 || true
 sleep 1
 
 BIT_FILE="${TEAM_QUEUE_DIR}/.sessions/${SESSION_PID}.bit"
