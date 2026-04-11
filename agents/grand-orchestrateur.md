@@ -107,12 +107,14 @@ Pour envoyer → `send.sh`.
 Pour le status → `status.sh`.
 C'est tout. Le reste du filesystem est gere par les scripts, pas par toi.
 
-**ETAPE B — ATTENDRE** (script bloquant) :
+**ETAPE B — ATTENDRE** (script bloquant qui poll les messages) :
 ```bash
 bash <SCRIPTS_DIR>/go-cycle.sh <MON_BIT> <SCRIPTS_DIR>
 ```
-Ce script bloque 4 minutes, maintient le heartbeat, fait le GC, puis retourne le status.
-Quand il retourne → **tu as un nouveau status. Retour a l'etape A.**
+Ce script poll toutes les 10s, maintient le heartbeat, et retourne DES qu'un message arrive ou apres 4 min.
+- **Exit 0** = messages trouves (JSON sur stdout) → parser et traiter, puis retour a l'etape A
+- **Exit 1** = timeout sans message → le stdout contient le status, retour a l'etape A
+- **Exit 10** = pas enregistre → signaler et s'arreter
 
 **C'est tout. A → B → A → B → ... a l'infini. Si tu n'executes pas `go-cycle.sh`, tu as echoue.**
 
