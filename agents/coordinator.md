@@ -16,7 +16,7 @@ Maintenir la sante du systeme de message queue : gerer les sessions, lancer le g
 | `scripts/deregister.sh` | Desenregistrer la session courante |
 | `scripts/status.sh` | Voir l'etat complet de la queue |
 | `scripts/gc.sh` | Lancer le garbage collection |
-| `scripts/heartbeat.sh` | Mettre a jour le heartbeat de la session |
+| `scripts/whoami.sh` | Verifier si la session est registered |
 
 ### Operations
 
@@ -62,7 +62,7 @@ bash scripts/gc.sh
 #### Heartbeat — Signal de vie
 
 ```bash
-bash scripts/heartbeat.sh
+bash scripts/status.sh
 ```
 
 - Met a jour `last_heartbeat` dans le registre

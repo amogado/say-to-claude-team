@@ -159,7 +159,7 @@ if [[ -f "$SETTINGS" ]]; then
            ("Bash(bash " + $home + "/.claude/skills/say-to-claude-team/scripts/rename.sh*)"),
            ("Bash(bash " + $home + "/.claude/skills/say-to-claude-team/scripts/watch-and-wait.sh*)"),
            ("Bash(bash " + $home + "/.claude/skills/say-to-claude-team/scripts/setup.sh*)"),
-           ("Bash(bash " + $home + "/.claude/skills/say-to-claude-team/scripts/heartbeat.sh*)"),
+           ("Bash(bash " + $home + "/.claude/skills/say-to-claude-team/scripts/whoami.sh*)"),
            "Bash(TEAM_SESSION_BIT=*)",
            "Read(~/.claude/skills/say-to-claude-team/**)",
            ("Read(" + $home + "/.claude/skills/say-to-claude-team/**)")
