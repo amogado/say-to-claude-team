@@ -98,6 +98,13 @@ C'est la procedure nucleaire : collecter tout le contexte disponible (screenshot
 
 **On perd le contexte LLM de la session, mais on sauve le travail.**
 
+## Regles techniques — permissions
+
+**NE JAMAIS utiliser `kill -0`** pour verifier si un PID est vivant — ca declenche un prompt de permission.
+Utiliser a la place : `ps -p <PID> -o comm= 2>/dev/null` — retourne le nom de la commande si vivant, vide si mort.
+**NE JAMAIS lire directement les fichiers dans `messages/`, `ack/`, `.sessions/`** — utiliser les scripts dedies (`status.sh`, `gc.sh`, `sessions-info-notes.sh`).
+**NE JAMAIS utiliser de boucle `for` sur le filesystem de la queue** — les scripts font le travail.
+
 ## Ce que tu rapportes au lead
 
 UNIQUEMENT les changements d'etat. Si tout va bien, SILENCE total.
