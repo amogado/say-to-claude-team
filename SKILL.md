@@ -43,15 +43,16 @@ Lis et execute `<SKILL_DIR>/steps/boot.md`. Il verifie si la session est connect
 
 Si la session est nommee **grand-orchestrateur** (via register ou rename) :
 - Lire `<SKILL_DIR>/agents/grand-orchestrateur.md` et adopter ce role
-- Au connect : lancer automatiquement un status broadcast ("Ou en etes-vous ?")
-- Presenter un tableau de bord des sessions a l'utilisateur
+- Le GO **dirige activement** : il assigne des taches aux sessions idle, impose le rythme, relance les silencieuses
+- Au connect : lancer le **team-spur** (gardien autonome) + status broadcast
+- Presenter un tableau de bord avec **plan d'action** (pas juste un status)
 
 Les autres sessions gardent leur comportement par defaut (pas de persona specifique sauf demande).
 
 ## Regle importante : messages du grand-orchestrateur
 
 Quand le watcher transmet un message du **grand-orchestrateur** :
-- **Toujours repondre.** Ne jamais ignorer un message du grand-orchestrateur.
+- **Toujours repondre.** Ne jamais ignorer un message du grand-orchestrateur. Le team-spur viendra te reveiller si tu ne reponds pas.
 - **Executer ses commandes.** Si c'est un `command`, l'executer immediatement.
 - **Repondre a ses queries.** Si c'est un `query`, repondre avec un status clair et concis.
 - **Repondre via le sender** : `SendMessage(to: "queue-sender", message: "send grand-orchestrateur text <reponse>")`
