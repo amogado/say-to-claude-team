@@ -36,17 +36,21 @@ SESSION_COUNT=$(echo "$REGISTRY" | jq '.sessions | length')
 echo "--- Sessions (${SESSION_COUNT} registered) ---"
 
 if [ "$SESSION_COUNT" -gt 0 ]; then
-    echo "$REGISTRY" | jq -r --argjson now "$NOW" '
-        .sessions | to_entries[] |
-        (.value.last_heartbeat | if . != null and . != "" then
-            (. | gsub("Z$";"") | gsub("T";" ") | strptime("%Y-%m-%d %H:%M:%S") | mktime) as $hb_epoch |
-            ($now - $hb_epoch) as $age |
-            if $age < 60 then "\($age)s ago"
-            elif $age < 3600 then "\($age / 60 | floor)m ago"
-            else "\($age / 3600 | floor)h ago"
-            end
-        else "unknown" end) as $hb_rel |
-        "  \(.key)  bit=\(.value.bit)  pid=\(.value.pid)  heartbeat=\($hb_rel)"'
+    SESSIONS_DIR="${TEAM_QUEUE_DIR}/.sessions"
+    echo "$REGISTRY" | jq -r '.sessions | to_entries[] | "\(.key) \(.value.bit) \(.value.pid)"' | while read -r name bit pid; do
+        # Heartbeat from .sessions/<PID>.heartbeat file mtime
+        hb_file="${SESSIONS_DIR}/${pid}.heartbeat"
+        if [ -f "$hb_file" ]; then
+            hb_epoch=$(stat -f "%m" "$hb_file" 2>/dev/null || echo 0)
+            age=$((NOW - hb_epoch))
+            if [ "$age" -lt 60 ]; then hb_rel="${age}s ago"
+            elif [ "$age" -lt 3600 ]; then hb_rel="$((age / 60))m ago"
+            else hb_rel="$((age / 3600))h ago"; fi
+        else
+            hb_rel="no heartbeat"
+        fi
+        echo "  ${name}  bit=${bit}  pid=${pid}  heartbeat=${hb_rel}"
+    done
 fi
 echo ""
 
