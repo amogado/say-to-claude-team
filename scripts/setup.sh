@@ -158,6 +158,8 @@ if [[ -f "$SETTINGS" ]]; then
            ("Bash(bash " + $home + "/.claude/skills/say-to-claude-team/scripts/deregister.sh*)"),
            ("Bash(bash " + $home + "/.claude/skills/say-to-claude-team/scripts/rename.sh*)"),
            ("Bash(bash " + $home + "/.claude/skills/say-to-claude-team/scripts/watch-and-wait.sh*)"),
+           ("Bash(bash " + $home + "/.claude/skills/say-to-claude-team/scripts/go-cycle.sh*)"),
+           ("Bash(bash " + $home + "/.claude/skills/say-to-claude-team/scripts/sessions-info-notes.sh*)"),
            ("Bash(bash " + $home + "/.claude/skills/say-to-claude-team/scripts/setup.sh*)"),
            ("Bash(bash " + $home + "/.claude/skills/say-to-claude-team/scripts/whoami.sh*)"),
            "Bash(TEAM_SESSION_BIT=*)",

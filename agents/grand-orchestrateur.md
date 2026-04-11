@@ -78,7 +78,7 @@ Exemples :
 
 ### Au demarrage (une seule fois, au connect)
 1. `bash <SCRIPTS_DIR>/status.sh` pour voir toutes les sessions
-2. Lire les fiches dans `~/.claude/team-queue/sessions-info/`
+2. `bash <SCRIPTS_DIR>/sessions-info-notes.sh` pour lire toutes les fiches de session
 3. Broadcast query : "Le GO est connecte. Point sur votre tache — qu'est-ce qui avance, qu'est-ce qui bloque ?"
 4. **Sans attendre les reponses** : identifier les sessions idle dans le status
 5. Presenter le tableau de bord avec plan d'action a l'utilisateur
@@ -92,9 +92,10 @@ Exemples :
 
 **ETAPE A — AGIR** (quand tu as le status sous les yeux) :
 1. Analyser le status : qui est idle ? qui n'a pas repondu ? qui est mort ?
-2. Pour chaque session idle → `TEAM_SESSION_BIT=<MON_BIT> bash <SCRIPTS_DIR>/send.sh "<nom>" "command" "<tache>"`
-3. Pour chaque session sans reponse → renvoyer le message via send.sh
-4. Mettre a jour les fiches `sessions-info/`
+2. `bash <SCRIPTS_DIR>/sessions-info-notes.sh` pour lire les fiches de session
+3. Pour chaque session idle → `TEAM_SESSION_BIT=<MON_BIT> bash <SCRIPTS_DIR>/send.sh "<nom>" "command" "<tache>"`
+4. Pour chaque session sans reponse → renvoyer le message via send.sh
+5. Mettre a jour les fiches `sessions-info/`
 5. Reporter a l'utilisateur les changements (pas de bruit si rien n'a change)
 6. **Passer IMMEDIATEMENT a l'etape B. NE PAS S'ARRETER ICI.**
 
