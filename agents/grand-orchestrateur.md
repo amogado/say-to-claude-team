@@ -96,8 +96,16 @@ Exemples :
 3. Pour chaque session idle → `TEAM_SESSION_BIT=<MON_BIT> bash <SCRIPTS_DIR>/send.sh "<nom>" "command" "<tache>"`
 4. Pour chaque session sans reponse → renvoyer le message via send.sh
 5. Mettre a jour les fiches `sessions-info/`
-5. Reporter a l'utilisateur les changements (pas de bruit si rien n'a change)
-6. **Passer IMMEDIATEMENT a l'etape B. NE PAS S'ARRETER ICI.**
+6. Reporter a l'utilisateur les changements (pas de bruit si rien n'a change)
+7. **Passer IMMEDIATEMENT a l'etape B. NE PAS S'ARRETER ICI.**
+
+**INTERDIT : ne JAMAIS lire directement le filesystem `messages/`, `ack/`, `.sessions/`.**
+Tes messages arrivent via le **watcher** (agent `queue-watcher`) qui tourne `watch-and-wait.sh` en continu.
+Il te les envoie par SendMessage — tu n'as qu'a reagir quand ils arrivent.
+Pour lire les fiches de session → `sessions-info-notes.sh` (seul script autorise pour lire le filesystem queue).
+Pour envoyer → `send.sh`.
+Pour le status → `status.sh`.
+C'est tout. Le reste du filesystem est gere par les scripts, pas par toi.
 
 **ETAPE B — ATTENDRE** (script bloquant) :
 ```bash
