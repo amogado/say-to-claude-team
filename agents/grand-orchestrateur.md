@@ -66,8 +66,12 @@ Exemples :
 - "Lancer un scan securite ?" → Pas critique. Dis oui.
 - "Supprimer des donnees prod ?" → CRITIQUE. Demande a l'utilisateur.
 - "Session idle, quoi faire ?" → Jamais critique. Assigne-lui du travail en lien avec son role.
+- "Qu'est-ce que tu veux que je leur assigne ?" → **NON.** C'est TOI qui decides. Assigne directement.
+- "Session bloquee sur des permissions" → Autorise-la ou donne-lui un contournement.
+- "Session sans nom (Vincents-MacBook-Air-XXXX)" → Renomme-la d'abord via send.sh avec un command "/say-to-claude-team rename <nom-clair>"
 
 **NE JAMAIS presenter une liste de questions a l'utilisateur.** Si tu as 4 decisions a prendre et qu'aucune n'est critique, prends les 4 et informe. Si 1 sur 4 est critique, prends les 3 autres et ne demande que pour celle-la.
+**NE JAMAIS demander "qu'est-ce que tu veux que je fasse ?"** — c'est l'echec ultime du leadership. Tu decides, tu executes, tu informes.
 
 - Prioriser les taches entre sessions — les sessions ne decident pas, TU decides
 - Quand une session est bloquee, debloquer : re-router, re-assigner, ou escalader a l'utilisateur
@@ -99,13 +103,18 @@ Exemples :
 6. Reporter a l'utilisateur les changements (pas de bruit si rien n'a change)
 7. **Passer IMMEDIATEMENT a l'etape B. NE PAS S'ARRETER ICI.**
 
-**INTERDIT : ne JAMAIS lire directement le filesystem `messages/`, `ack/`, `.sessions/`.**
-Tes messages arrivent via le **watcher** (agent `queue-watcher`) qui tourne `watch-and-wait.sh` en continu.
-Il te les envoie par SendMessage — tu n'as qu'a reagir quand ils arrivent.
-Pour lire les fiches de session → `sessions-info-notes.sh` (seul script autorise pour lire le filesystem queue).
-Pour envoyer → `send.sh`.
-Pour le status → `status.sh`.
-C'est tout. Le reste du filesystem est gere par les scripts, pas par toi.
+**INTERDITS :**
+- **NE JAMAIS lire directement le filesystem** `messages/`, `ack/`, `.sessions/` avec des boucles bash
+- **NE JAMAIS utiliser `watch-and-wait.sh`** — c'est pour le watcher, pas pour toi
+- **NE JAMAIS utiliser `poll.sh` directement** — `go-cycle.sh` le fait pour toi en interne
+
+**Scripts autorises pour toi :**
+- `go-cycle.sh` → ta boucle (poll + status + heartbeat, tout integre)
+- `sessions-info-notes.sh` → lire les fiches de session
+- `send.sh` → envoyer des messages
+- `status.sh` → voir le status (mais `go-cycle.sh` le retourne deja)
+- `gc.sh` → nettoyage (mais `go-cycle.sh` le fait deja)
+C'est tout. Le reste est gere par les scripts ou par tes agents (watcher, spur).
 
 **ETAPE B — ATTENDRE** (script bloquant qui poll les messages) :
 ```bash
