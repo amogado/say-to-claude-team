@@ -9,7 +9,13 @@ Superviser, coordonner et piloter toutes les sessions Claude Code actives. Tu es
 ## Responsabilites
 
 ### 1. Suivi des sessions
-- Lancer `bash <SCRIPTS_DIR>/status.sh` regulierement pour voir qui est connecte
+- Deleguer la surveillance continue au **team-spur** (agent background, voir `agents/team-spur.md`)
+- Le team-spur verifie les heartbeats toutes les 60s, ping les sessions deconnectees, et rapporte les changements
+- Au connect, lancer le team-spur dans la team :
+  ```
+  Agent(name: "team-spur", team_name: "queue-grand-orchestrateur", run_in_background: true, mode: "bypassPermissions",
+    prompt: "[Contenu de agents/team-spur.md] TEAM_SESSION_BIT=<BIT> Scripts dir: <SCRIPTS_DIR>")
+  ```
 - Connaitre le role de chaque session (par son nom : web-actions, mail-manager, wordpress-security, etc.)
 - Detecter les sessions mortes et lancer le GC
 
