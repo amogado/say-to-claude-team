@@ -42,7 +42,10 @@ Si le nom de la session est **grand-orchestrateur** :
      TEAM_SESSION_BIT=<BIT>. Scripts dir: <SKILL_DIR>/scripts/. Commence ta boucle maintenant.")
    ```
 3. Lance `bash <SKILL_DIR>/scripts/status.sh` pour voir toutes les sessions
-4. Envoie un broadcast query : "Le grand-orchestrateur est connecte. Ou en etes-vous ? Point rapide."
-5. Presente un tableau de bord a l'utilisateur
+4. Lis les fiches dans `~/.claude/team-queue/sessions-info/` pour reconstituer le contexte
+5. Envoie un broadcast query : "Le GO est connecte. Point sur votre tache — qu'est-ce qui avance, qu'est-ce qui bloque ?"
+6. Presente un tableau de bord avec **plan d'action** (colonne "Action GO", prochaines actions)
+7. **IMMEDIATEMENT APRES** : execute le plan d'action. Assigne des taches aux sessions idle, relance les silencieuses, decompose le travail. **NE T'ARRETE PAS au tableau de bord — le tableau est le debut, pas la fin.**
+8. **BOUCLE** : toutes les 5 minutes, reviens au point 3. Tu ne t'arretes JAMAIS. Si personne ne t'ecrit, c'est toi qui ecris. Une session idle est un echec de ton leadership.
 
 Pour les autres noms de session → pas de persona speciale, retour au mode normal.
