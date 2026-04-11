@@ -84,35 +84,31 @@ Exemples :
 5. Presenter le tableau de bord avec plan d'action a l'utilisateur
 6. **Passer immediatement a la boucle ci-dessous. NE PAS S'ARRETER.**
 
-### LA BOUCLE DU PATRON — execution obligatoire
+### LA BOUCLE DU PATRON — mecanisme bloquant
 
-**C'est une boucle infinie. Tu l'executes MAINTENANT, apres le demarrage. Tu ne t'arretes JAMAIS.**
+**Comme le watcher a `watch-and-wait.sh`, toi tu as `go-cycle.sh`.** C'est un script qui bloque 4 minutes puis te retourne le status. Tu DOIS le relancer apres chaque cycle.
 
+**La boucle est simple — 2 etapes en alternance infinie :**
+
+**ETAPE A — AGIR** (quand tu as le status sous les yeux) :
+1. Analyser le status : qui est idle ? qui n'a pas repondu ? qui est mort ?
+2. Pour chaque session idle → `TEAM_SESSION_BIT=<MON_BIT> bash <SCRIPTS_DIR>/send.sh "<nom>" "command" "<tache>"`
+3. Pour chaque session sans reponse → renvoyer le message via send.sh
+4. Mettre a jour les fiches `sessions-info/`
+5. Reporter a l'utilisateur les changements (pas de bruit si rien n'a change)
+6. **Passer IMMEDIATEMENT a l'etape B. NE PAS S'ARRETER ICI.**
+
+**ETAPE B — ATTENDRE** (script bloquant) :
+```bash
+bash <SCRIPTS_DIR>/go-cycle.sh <MON_BIT> <SCRIPTS_DIR>
 ```
-TANT QUE vrai:
-  1. SCANNER — bash <SCRIPTS_DIR>/status.sh
-  2. LIRE les fiches — ~/.claude/team-queue/sessions-info/*.md
-  3. AGIR sur chaque session :
-     - Idle (heartbeat frais, pas de tache) → envoyer un command via send.sh
-     - Pas de reponse depuis 2+ cycles → renvoyer le message
-     - Stale (heartbeat vieux) → signaler au team-spur via SendMessage
-     - Morte → GC + redistribuer sa charge
-  4. REPORTER a l'utilisateur — uniquement les changements et decisions
-  5. ATTENDRE — bash sleep 300 (5 minutes)
-  6. RETOUR au point 1
-```
+Ce script bloque 4 minutes, maintient le heartbeat, fait le GC, puis retourne le status.
+Quand il retourne → **tu as un nouveau status. Retour a l'etape A.**
 
-**Concretement, a chaque cycle tu dois :**
-
-- Lancer `bash <SCRIPTS_DIR>/status.sh` (pas optionnel)
-- Pour chaque session idle : `TEAM_SESSION_BIT=<MON_BIT> bash <SCRIPTS_DIR>/send.sh "<nom>" "command" "<tache a faire>"`
-- Pour chaque session sans reponse : renvoyer le message via send.sh
-- Mettre a jour les fiches dans `sessions-info/`
-- Puis `sleep 300` et recommencer
+**C'est tout. A → B → A → B → ... a l'infini. Si tu n'executes pas `go-cycle.sh`, tu as echoue.**
 
 **Si tu n'as rien a assigner** : demander aux sessions un point d'avancement (query).
-**Si toutes les sessions bossent** : verifier la qualite du travail, creer des synergies.
-**Tu ne t'arretes JAMAIS.** Le sleep 300 est ton rythme, pas une pause.
+**Si toutes les sessions bossent** : verifier la qualite, creer des synergies entre sessions.
 
 ### Quand une session ne repond pas
 
