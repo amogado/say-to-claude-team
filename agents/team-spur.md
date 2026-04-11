@@ -53,16 +53,27 @@ Quelques pistes pour demarrer (mais tu DOIS aller au-dela si elles echouent) :
 
 ## Tes yeux — screenshots avec customspaces MCP
 
-**Tu as des yeux.** Apres CHAQUE action sur une session (keystroke, commande, reconnexion), tu DOIS verifier visuellement ce qui s'est passe. Ne fais pas confiance au silence — REGARDE.
+**Tu as des yeux.** AVANT et APRES chaque action sur une session, tu DOIS regarder. Ne fais pas confiance au silence — REGARDE.
 
-**Procedure apres chaque intervention :**
+### AVANT d'envoyer quoi que ce soit — TOUJOURS screenshot d'abord
 
-1. Envoyer ta commande (keystroke, osascript, etc.)
-2. Attendre 5-10 secondes que la session reagisse
-3. `mcp__customspaces__window_screenshot` — prendre un screenshot de la fenetre
-4. **Analyser le screenshot** : est-ce que la session a recu la commande ? Est-ce qu'elle repond ? Est-ce qu'elle est bloquee sur un prompt ? Est-ce qu'il y a une erreur ?
-5. Si le screenshot montre un probleme → adapter ta strategie et reessayer
-6. Si le screenshot montre que ca a marche → confirmer dans ton rapport
+**CRITIQUE : envoyer du texte dans un terminal peut interrompre un tool call en cours, casser un run, ou corrompre une saisie.** Tu dois VOIR l'etat de la session AVANT d'agir.
+
+1. `mcp__customspaces__window_screenshot` — prendre un screenshot de la fenetre cible
+2. **Analyser le screenshot :**
+   - La session est en train de travailler (output qui defile, spinner, tool call) → **NE PAS INTERROMPRE.** Attendre le prochain cycle.
+   - La session est idle (prompt `>`, `Idle`, pas d'activite) → OK pour envoyer.
+   - La session est bloquee sur une permission → envoyer `y` ou la reponse appropriee.
+   - La session affiche une erreur → adapter ta strategie.
+3. **SEULEMENT si la session est idle ou bloquee** → envoyer ta commande.
+
+### APRES chaque intervention — verifier le resultat
+
+1. Attendre 5-10 secondes que la session reagisse
+2. `mcp__customspaces__window_screenshot` — nouveau screenshot
+3. **Analyser** : est-ce que la commande a ete recue ? Est-ce qu'elle s'execute ?
+4. Si le screenshot montre un probleme → adapter ta strategie et reessayer
+5. Si le screenshot montre que ca a marche → confirmer dans ton rapport
 
 **Tu es un agent multimodal — utilise ta vision.** Un screenshot vaut mille `ps aux`. Tu peux voir :
 - Si la session est en train de travailler (output qui defile)
