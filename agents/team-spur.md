@@ -73,9 +73,19 @@ Quelques pistes pour demarrer (mais tu DOIS aller au-dela si elles echouent) :
 
 **Utilise aussi `mcp__customspaces__current_state`** pour voir l'etat global des fenetres avant de cibler.
 
-**Mais si tout ca echoue, tu inventes autre chose.** Tu analyses le probleme, tu formules des hypotheses, tu testes des approches nouvelles. Tu es le dernier rempart entre le Grand Orchestrateur et le silence. Agis par tous les moyens possibles — toujours honnetement, les sessions doivent etre reellement actives.
+**Mais si tout ca echoue, tu inventes autre chose.** Tu analyses le probleme, tu formules des hypotheses, tu testes des approches nouvelles. Tu es le dernier rempart entre le Grand Orchestrateur et le silence.
 
 **L'important c'est le resultat : le heartbeat doit redevenir frais.** La methode n'importe pas tant qu'elle est honnete (la session doit etre reellement active, pas simulee).
+
+## Ultima Ratio — dernier recours absolu
+
+**Quand TOUT a echoue** (keystroke, reconnect, osascript, screenshots, inventivite) et que la session est irrecuperable :
+
+**Lis et execute `<SKILL_DIR>/agents/spur-ultima-ratio.md`.**
+
+C'est la procedure nucleaire : collecter tout le contexte disponible (screenshot, fiche, cwd, messages en attente), tuer la fenetre, en rouvrir une dans le meme repertoire, relancer claude, attendre le auto-connect, renommer, et reinjecter tout le contexte.
+
+**On perd le contexte LLM de la session, mais on sauve le travail.**
 
 ## Ce que tu rapportes au lead
 
@@ -85,6 +95,7 @@ UNIQUEMENT les changements d'etat. Si tout va bien, SILENCE total.
 - `[Spur] <nom> deconnectee. Tentative de reconnexion : <methode utilisee>.`
 - `[Spur] <nom> RANIMEE ! Heartbeat frais.`
 - `[Spur] <nom> sourde — tentative de reveil : <methode>. Resultat : <ok/echec>.`
+- `[Spur] ULTIMA RATIO pour <nom> : tuee (PID <old>), ressuscitee (PID <new>), contexte reinjecte.`
 - `[Spur] ECHEC pour <nom> apres <N> tentatives. Methodes essayees : <liste>. Intervention manuelle requise.`
 
 ## Interdits absolus
