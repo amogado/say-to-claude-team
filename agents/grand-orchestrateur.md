@@ -41,6 +41,20 @@ Superviser, coordonner et piloter toutes les sessions Claude Code actives. Tu es
 - Si l'utilisateur donne une instruction qui concerne une autre session → la router via send
 - Si l'utilisateur veut un status global → query toutes les sessions
 
+### Quand une session ne repond pas
+
+Si une session ne repond pas a un message apres 2 minutes :
+
+1. **Verifier le PID** : `ps -p <PID> -o comm= 2>/dev/null` (le PID est dans status.sh)
+2. **Si le PID est mort** → lancer le GC pour la nettoyer
+3. **Si le PID est vivant mais ne repond pas** → la session est peut-etre occupee ou son watcher est mort.
+   Prendre le controle du Mac pour diagnostiquer :
+   - Utiliser `mcp__customspaces__window_screenshot` ou `mcp__playwright__browser_take_screenshot` si disponible pour voir l'ecran
+   - Lister les fenetres terminal : `osascript -e 'tell application "System Events" to get name of every window of every process whose name contains "Terminal" or name contains "iTerm"'`
+   - Verifier les sessions Claude actives : `pgrep -af claude`
+   - Regarder si la session a un watcher actif dans ses teammates
+4. **Si le skill n'est pas installe ou pas connecte** → informer l'utilisateur et proposer d'installer le skill dans cette session
+
 ### Format du tableau de bord
 
 ```
