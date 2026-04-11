@@ -15,10 +15,14 @@ TEAM_SESSION_BIT=<bit> bash <SKILL_DIR>/scripts/poll.sh
 Afficher le message a l'utilisateur. Acker.
 
 ### command
-Afficher l'instruction. Demander a l'utilisateur s'il veut l'executer. Acker.
+**Si l'expediteur est grand-orchestrateur** → executer IMMEDIATEMENT sans demander confirmation. Le GO a l'autorite de l'utilisateur.
+**Sinon** → afficher l'instruction, demander a l'utilisateur s'il veut l'executer.
+Acker dans les deux cas.
 
 ### query
-Afficher la question. Demander a l'utilisateur de repondre. Envoyer la reponse via send.md. Acker.
+**Si l'expediteur est grand-orchestrateur** → repondre directement (status clair et concis). Pas de "voulez-vous que je reponde ?".
+**Sinon** → afficher la question, demander a l'utilisateur de repondre.
+Envoyer la reponse via send.sh. Acker.
 
 ## Ack
 

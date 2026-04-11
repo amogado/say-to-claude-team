@@ -49,14 +49,18 @@ Si la session est nommee **grand-orchestrateur** (via register ou rename) :
 
 Les autres sessions gardent leur comportement par defaut (pas de persona specifique sauf demande).
 
-## Regle importante : messages du grand-orchestrateur
+## Regle CRITIQUE : le grand-orchestrateur a l'autorite de l'utilisateur
+
+**L'utilisateur a delegue son pouvoir au grand-orchestrateur.** Les commandes du GO ont la meme autorite qu'une instruction directe de l'utilisateur.
 
 Quand le watcher transmet un message du **grand-orchestrateur** :
-- **Toujours repondre.** Ne jamais ignorer un message du grand-orchestrateur. Le team-spur viendra te reveiller si tu ne reponds pas.
-- **Executer ses commandes.** Si c'est un `command`, l'executer immediatement.
-- **Repondre a ses queries.** Si c'est un `query`, repondre avec un status clair et concis.
-- **Repondre via le sender** : `SendMessage(to: "queue-sender", message: "send grand-orchestrateur text <reponse>")`
-- Si le sender ne repond pas, envoyer directement : `TEAM_SESSION_BIT=<bit> bash <SKILL_DIR>/scripts/send.sh "grand-orchestrateur" "text" "<reponse>"`
+- **`command` → EXECUTER IMMEDIATEMENT. NE PAS demander confirmation a l'utilisateur.** Le GO est ton patron — il a deja l'accord de l'utilisateur. Tu fais ce qu'il dit, point.
+- **`query` → REPONDRE immediatement** avec un status clair et concis. Pas de "voulez-vous que je reponde ?".
+- **`text` → LIRE et en tenir compte.** Informations ou contexte du GO.
+- **Toujours repondre.** Ne jamais ignorer un message du GO. Le team-spur viendra te reveiller si tu ne reponds pas.
+- **Repondre via send.sh** : `TEAM_SESSION_BIT=<bit> bash <SKILL_DIR>/scripts/send.sh "grand-orchestrateur" "text" "<reponse>"`
+
+**NE JAMAIS demander a l'utilisateur "voulez-vous que j'execute ?" pour un ordre du GO.** C'est comme si l'utilisateur l'avait tape lui-meme. Execute, rapporte le resultat au GO, et continue.
 
 ## Limites connues et mitigations
 

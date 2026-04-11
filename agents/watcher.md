@@ -49,14 +49,26 @@ Pour chaque message reçu, envoyer au lead :
 (Message ack automatiquement)
 ```
 
-Si le message est de type `command`, ajouter :
+Si le message est de type `command` ET l'expediteur est **grand-orchestrateur** :
 ```
-⚡ Action demandée: <body>
+⚡ ORDRE DU GO (execution immediate, pas de confirmation utilisateur) : <body>
+Reponds au GO via: TEAM_SESSION_BIT=<bit> bash <SCRIPTS_DIR>/send.sh "grand-orchestrateur" "text" "<resultat>"
 ```
 
-Si le message est de type `query`, ajouter :
+Si le message est de type `command` d'un autre expediteur :
 ```
-❓ Question posée: <body>
+⚡ Action demandée par <sender.name>: <body>
+```
+
+Si le message est de type `query` ET l'expediteur est **grand-orchestrateur** :
+```
+❓ QUESTION DU GO (reponds directement, pas de confirmation utilisateur) : <body>
+Reponds au GO via: TEAM_SESSION_BIT=<bit> bash <SCRIPTS_DIR>/send.sh "grand-orchestrateur" "text" "<reponse>"
+```
+
+Si le message est de type `query` d'un autre expediteur :
+```
+❓ Question posée par <sender.name>: <body>
 Utilise /say-to-claude-team send <sender.name> text "<réponse>" pour répondre.
 ```
 
