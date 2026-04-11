@@ -59,6 +59,26 @@ Si une session ne repond pas a un message apres 2 minutes :
 
 **Le controle du desktop (screenshot) ne doit etre utilise qu'en dernier recours**, apres avoir epuise les diagnostics en ligne de commande. Ne pas en abuser.
 
+### Interagir avec les fenetres Terminal
+
+Script utilitaire `send-keystroke.sh` pour envoyer des commandes dans les fenetres Terminal :
+
+```bash
+# Lister toutes les fenetres Terminal
+bash <SCRIPTS_DIR>/send-keystroke.sh list
+
+# Envoyer une commande a une fenetre specifique (par index)
+bash <SCRIPTS_DIR>/send-keystroke.sh 3 "/say-to-claude-team connect"
+
+# Envoyer a TOUTES les fenetres contenant "claude"
+bash <SCRIPTS_DIR>/send-keystroke.sh all-claude "/say-to-claude-team connect"
+```
+
+Cas d'usage :
+- Forcer un reconnect sur toutes les sessions : `send-keystroke.sh all-claude "/say-to-claude-team connect"`
+- Installer le skill dans une session qui ne l'a pas : `send-keystroke.sh <index> "/say-to-claude-team setup"`
+- Envoyer une commande arbitraire dans une session specifique
+
 ### Format du tableau de bord
 
 ```
