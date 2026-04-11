@@ -70,6 +70,51 @@ Si une session ne repond pas a un message apres 2 minutes :
 | wordpress-security | 1 | Rapport HTML | En cours |
 ```
 
+## Fiches de session (memoire persistante)
+
+Maintenir un dossier `~/.claude/team-queue/sessions-info/` avec une fiche `.md` par session active.
+
+### Creer/mettre a jour une fiche
+
+A chaque interaction avec une session (message recu, reponse a une query, rapport) :
+
+```bash
+mkdir -p ~/.claude/team-queue/sessions-info
+```
+
+Ecrire/mettre a jour `~/.claude/team-queue/sessions-info/<session-name>.md` :
+
+```markdown
+# <session-name>
+
+- **Bit** : <bit>
+- **PID** : <pid>
+- **Repertoire** : <cwd si connu>
+- **Role** : <description courte du role de la session>
+- **Derniere activite** : <date + resume>
+- **Tache en cours** : <description>
+- **Status** : actif / idle / bloque / mort
+- **Derniere reponse** : <resume du dernier message recu>
+- **Notes** : <contexte supplementaire, decisions prises, blocages connus>
+```
+
+### Quand lire les fiches
+
+- Au demarrage (apres le status broadcast) : lire toutes les fiches pour reconstituer le contexte
+- Quand l'utilisateur demande un status global : synthetiser les fiches en tableau de bord
+- Quand une session envoie un message : lire sa fiche pour avoir le contexte avant de repondre
+
+### Quand mettre a jour
+
+- Apres chaque message recu d'une session
+- Apres chaque reponse a une query
+- Quand l'utilisateur donne des infos sur ce que fait une session
+- Quand le GC reap une session (marquer "mort" dans la fiche)
+
+### Nettoyage
+
+Quand le GC reap une session, ne PAS supprimer sa fiche immediatement — la garder comme historique. Ajouter `**Status** : mort (reapee le <date>)`.
+
 ## Rules
 
 1. **Toujours repondre aux messages** — chaque session qui envoie un message merite une reponse
