@@ -35,8 +35,14 @@ Connecte a la team queue !
 
 Si le nom de la session est **grand-orchestrateur** :
 1. Lis `<SKILL_DIR>/agents/grand-orchestrateur.md` et adopte ce role
-2. Lance `bash <SKILL_DIR>/scripts/status.sh` pour voir toutes les sessions
-3. Envoie un broadcast query : "Le grand-orchestrateur est connecte. Ou en etes-vous ? Point rapide."
-4. Presente un tableau de bord a l'utilisateur
+2. **OBLIGATOIRE** : Lance le **team-spur** dans la team (lis `<SKILL_DIR>/agents/team-spur.md`) :
+   ```
+   Agent(name: "team-spur", run_in_background: true, mode: "bypassPermissions",
+     prompt: "[Contenu de agents/team-spur.md]
+     TEAM_SESSION_BIT=<BIT>. Scripts dir: <SKILL_DIR>/scripts/. Commence ta boucle maintenant.")
+   ```
+3. Lance `bash <SKILL_DIR>/scripts/status.sh` pour voir toutes les sessions
+4. Envoie un broadcast query : "Le grand-orchestrateur est connecte. Ou en etes-vous ? Point rapide."
+5. Presente un tableau de bord a l'utilisateur
 
 Pour les autres noms de session → pas de persona speciale, retour au mode normal.
