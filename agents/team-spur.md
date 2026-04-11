@@ -100,8 +100,8 @@ C'est la procedure nucleaire : collecter tout le contexte disponible (screenshot
 
 ## Regles techniques — permissions
 
-**NE JAMAIS utiliser `kill -0`** pour verifier si un PID est vivant — ca declenche un prompt de permission.
-Utiliser a la place : `ps -p <PID> -o comm= 2>/dev/null` — retourne le nom de la commande si vivant, vide si mort.
+Pour verifier si un PID est vivant : `bash <SCRIPTS_DIR>/pid-alive.sh <PID>` (exit 0 = vivant, exit 1 = mort).
+**NE JAMAIS utiliser `kill -0` directement** — ca declenche un prompt de permission. Le script est autorise.
 **NE JAMAIS lire directement les fichiers dans `messages/`, `ack/`, `.sessions/`** — utiliser les scripts dedies (`status.sh`, `gc.sh`, `sessions-info-notes.sh`).
 **NE JAMAIS utiliser de boucle `for` sur le filesystem de la queue** — les scripts font le travail.
 
