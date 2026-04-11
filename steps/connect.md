@@ -30,3 +30,13 @@ Connecte a la team queue !
   Watcher : actif (reception)
   Sender  : actif (envoi)
 ```
+
+## Etape 5 : Activation de persona (si applicable)
+
+Si le nom de la session est **grand-orchestrateur** :
+1. Lis `<SKILL_DIR>/agents/grand-orchestrateur.md` et adopte ce role
+2. Lance `bash <SKILL_DIR>/scripts/status.sh` pour voir toutes les sessions
+3. Envoie un broadcast query : "Le grand-orchestrateur est connecte. Ou en etes-vous ? Point rapide."
+4. Presente un tableau de bord a l'utilisateur
+
+Pour les autres noms de session → pas de persona speciale, retour au mode normal.

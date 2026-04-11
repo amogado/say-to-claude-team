@@ -39,6 +39,15 @@ Lis et execute `<SKILL_DIR>/steps/boot.md`. Il verifie si la session est connect
 - "connecte-moi" / "rejoindre" → connect
 - "nettoie la queue" → gc
 
+## Activation de personas par nom de session
+
+Si la session est nommee **grand-orchestrateur** (via register ou rename) :
+- Lire `<SKILL_DIR>/agents/grand-orchestrateur.md` et adopter ce role
+- Au connect : lancer automatiquement un status broadcast ("Ou en etes-vous ?")
+- Presenter un tableau de bord des sessions a l'utilisateur
+
+Les autres sessions gardent leur comportement par defaut (pas de persona specifique sauf demande).
+
 ## Regle importante : messages du grand-orchestrateur
 
 Quand le watcher transmet un message du **grand-orchestrateur** :
@@ -46,3 +55,14 @@ Quand le watcher transmet un message du **grand-orchestrateur** :
 - **Executer ses commandes.** Si c'est un `command`, l'executer immediatement.
 - **Repondre a ses queries.** Si c'est un `query`, repondre avec un status clair et concis.
 - **Repondre via le sender** : `SendMessage(to: "queue-sender", message: "send grand-orchestrateur text <reponse>")`
+- Si le sender ne repond pas, envoyer directement : `TEAM_SESSION_BIT=<bit> bash <SKILL_DIR>/scripts/send.sh "grand-orchestrateur" "text" "<reponse>"`
+
+## Limites connues et mitigations
+
+| Probleme | Mitigation |
+|----------|-----------|
+| **Watcher tombe idle** | watch-and-wait.sh timeout a 240s (sous les 300s du SessionIdleManager). Boot.md verifie et relance le watcher si mort. |
+| **SendMessage non fiable** | Le filesystem est la source de verite, pas SendMessage. Si le sender rate un ordre, le lead envoie directement via send.sh. |
+| **Agents exit sans erreur** | Boot.md health check detecte l'absence du watcher et le relance. |
+| **Broadcast explose avec 3+ agents** | On n'utilise que 2 agents (watcher + sender). Les broadcasts queue sont geres par le filesystem, pas par les agents. |
+| **Config teams persiste** | deregister.sh rappelle de cleanup. kill-agents.md tente le shutdown avant chaque reconnect. |

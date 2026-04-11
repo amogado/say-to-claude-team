@@ -15,7 +15,7 @@ BIT="$1"
 SCRIPTS_DIR="$2"
 
 INTERVAL=10        # secondes entre chaque poll
-TIMEOUT=570        # ~9.5 min (sous la limite Bash tool de 600s)
+TIMEOUT=240        # 4 min — sous le idle timeout de 300s de SessionIdleManager
 GC_INTERVAL=300    # GC toutes les 5 minutes
 
 elapsed=0

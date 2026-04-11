@@ -2,18 +2,21 @@
 
 **Execute AVANT chaque commande (sauf `setup` et `connect`).**
 
-## Action
+## Etape 1 : Verification registration
 
 Lance :
 ```bash
 bash <SKILL_DIR>/scripts/whoami.sh
 ```
 
-## Si exit 0 (connecte)
+- Si exit 0 → la session est connectee. La sortie contient `<nom> <bit>`. Passe a l'etape 2.
+- Si exit 1 → "Session pas encore connectee." Lis et execute `<SKILL_DIR>/steps/connect.md`.
 
-La sortie contient `<nom> <bit>`. La session est connectee. Retourne au routeur et execute la commande demandee.
+## Etape 2 : Health check watcher
 
-## Si exit 1 (pas connecte)
+Verifie si le watcher tourne. Regarde si tu as un teammate nomme "queue-watcher" visible (dans la barre en bas ou dans tes teammates connus).
 
-Dis a l'utilisateur : "Session pas encore connectee. Je lance la connexion."
-Puis lis et execute `<SKILL_DIR>/steps/connect.md`.
+- Si oui → OK, retourne au routeur.
+- Si non (pas de watcher actif) → relance le watcher silencieusement. Lis `<SKILL_DIR>/steps/launch-agents.md` et execute seulement la partie watcher.
+
+**Ne PAS relancer le sender s'il n'est pas actif** — le lead peut envoyer directement via send.sh.

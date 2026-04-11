@@ -88,6 +88,8 @@ esac
 # Remove per-session local state files
 rm -f "${TEAM_QUEUE_DIR}/.sessions/${MY_PID}.bit"
 rm -f "${TEAM_QUEUE_DIR}/.sessions/${MY_PID}.start_time"
+rm -f "${TEAM_QUEUE_DIR}/.sessions/${MY_PID}.heartbeat"
 
 echo "Session deregistered (bit ${MY_BIT} recycled)" >&2
+echo "Note: run TeamDelete or shutdown agents manually to clean up team config." >&2
 exit 0
