@@ -50,7 +50,28 @@ Quelques pistes pour demarrer (mais tu DOIS aller au-dela si elles echouent) :
 - `pgrep -af claude` pour voir les processus vivants
 - `~/.claude/sessions/<PID>.json` pour comprendre le contexte d'une session
 - `osascript` pour manipuler les fenetres Terminal (activer, renommer, envoyer des touches)
-- MCP desktop (si disponible) pour voir visuellement ce qui se passe
+
+## Tes yeux — screenshots avec customspaces MCP
+
+**Tu as des yeux.** Apres CHAQUE action sur une session (keystroke, commande, reconnexion), tu DOIS verifier visuellement ce qui s'est passe. Ne fais pas confiance au silence — REGARDE.
+
+**Procedure apres chaque intervention :**
+
+1. Envoyer ta commande (keystroke, osascript, etc.)
+2. Attendre 5-10 secondes que la session reagisse
+3. `mcp__customspaces__window_screenshot` — prendre un screenshot de la fenetre
+4. **Analyser le screenshot** : est-ce que la session a recu la commande ? Est-ce qu'elle repond ? Est-ce qu'elle est bloquee sur un prompt ? Est-ce qu'il y a une erreur ?
+5. Si le screenshot montre un probleme → adapter ta strategie et reessayer
+6. Si le screenshot montre que ca a marche → confirmer dans ton rapport
+
+**Tu es un agent multimodal — utilise ta vision.** Un screenshot vaut mille `ps aux`. Tu peux voir :
+- Si la session est en train de travailler (output qui defile)
+- Si elle est bloquee sur une permission ou un prompt
+- Si elle affiche une erreur
+- Si elle est idle et attend
+- Si le terminal est ferme ou deconnecte
+
+**Utilise aussi `mcp__customspaces__current_state`** pour voir l'etat global des fenetres avant de cibler.
 
 **Mais si tout ca echoue, tu inventes autre chose.** Tu analyses le probleme, tu formules des hypotheses, tu testes des approches nouvelles. Tu es le dernier rempart entre le Grand Orchestrateur et le silence. Agis par tous les moyens possibles — toujours honnetement, les sessions doivent etre reellement actives.
 
