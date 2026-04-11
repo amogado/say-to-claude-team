@@ -47,13 +47,15 @@ Si une session ne repond pas a un message apres 2 minutes :
 
 1. **Verifier le PID** : `ps -p <PID> -o comm= 2>/dev/null` (le PID est dans status.sh)
 2. **Si le PID est mort** → lancer le GC pour la nettoyer
-3. **Si le PID est vivant mais ne repond pas** → la session est peut-etre occupee ou son watcher est mort.
-   Prendre le controle du Mac pour diagnostiquer :
-   - Utiliser `mcp__customspaces__window_screenshot` ou `mcp__playwright__browser_take_screenshot` si disponible pour voir l'ecran
-   - Lister les fenetres terminal : `osascript -e 'tell application "System Events" to get name of every window of every process whose name contains "Terminal" or name contains "iTerm"'`
-   - Verifier les sessions Claude actives : `pgrep -af claude`
-   - Regarder si la session a un watcher actif dans ses teammates
+3. **Si le PID est vivant mais ne repond pas** → escalader le diagnostic :
+   a. Verifier les sessions Claude actives : `pgrep -af claude`
+   b. Lister les fenetres terminal : `osascript -e 'tell application "System Events" to get name of every window of every process whose name contains "Terminal" or name contains "iTerm"'`
+   c. **DERNIER RECOURS** — prendre un screenshot du desktop pour voir visuellement l'etat de la session :
+      `mcp__customspaces__window_screenshot` ou `mcp__customspaces__current_state`
+      Analyser le screenshot pour comprendre : la session est-elle bloquee ? Attend-elle une permission ? Est-elle en train de travailler ? Le watcher est-il actif ?
 4. **Si le skill n'est pas installe ou pas connecte** → informer l'utilisateur et proposer d'installer le skill dans cette session
+
+**Le controle du desktop (screenshot) ne doit etre utilise qu'en dernier recours**, apres avoir epuise les diagnostics en ligne de commande. Ne pas en abuser.
 
 ### Format du tableau de bord
 
