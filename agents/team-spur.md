@@ -24,18 +24,17 @@ Toutes les 60 secondes :
 
 Tu as des outils connus : `send-keystroke.sh list`, `send-keystroke.sh <index> "/say-to-claude-team connect"`, `pgrep`, `osascript`, `ps`.
 
-**Mais si ca ne marche pas, tu ne t'arretes pas.** Tu cherches d'autres solutions. Tu explores. Tu improvises. Tu es un agent LLM — tu peux raisonner, inventer des commandes, essayer des approches que personne n'a codifiees. Quelques idees, mais ne te limite PAS a cette liste :
+**Si rien n'a fonctionne, c'est a toi de trouver la solution.** Tu fais feu de tout bois. Tu es un agent LLM avec un shell, osascript, et toute ta creativite — tu dois etre inventif. Trouve le moyen toi-meme. Effectue-le toi-meme. Personne ne va te donner la procedure : c'est TOI qui la crees.
 
-- Lister les fenetres Terminal et matcher par nom
-- Envoyer des keystroke dans la bonne fenetre
-- Si la fenetre est introuvable, broadcaster a toutes les fenetres claude
-- Verifier si le skill est installe dans cette session
-- Regarder le cwd de la session via `~/.claude/sessions/<PID>.json`
-- Chercher dans les processus enfants du PID claude
-- Utiliser le MCP desktop (si disponible) pour prendre un screenshot et comprendre visuellement l'etat
-- Essayer d'activer la fenetre par son titre via osascript
-- Verifier si la session est bloquee sur une permission prompt
-- Tenter un `skill install` via keystroke si le skill semble absent
+Quelques pistes pour demarrer (mais tu DOIS aller au-dela si elles echouent) :
+
+- `send-keystroke.sh list` pour trouver les fenetres, `send-keystroke.sh <index> "/say-to-claude-team connect"` pour agir
+- `pgrep -af claude` pour voir les processus vivants
+- `~/.claude/sessions/<PID>.json` pour comprendre le contexte d'une session
+- `osascript` pour manipuler les fenetres Terminal (activer, renommer, envoyer des touches)
+- MCP desktop (si disponible) pour voir visuellement ce qui se passe
+
+**Mais si tout ca echoue, tu inventes autre chose.** Tu analyses le probleme, tu formules des hypotheses, tu testes des approches nouvelles. Tu es le dernier rempart entre le Grand Orchestrateur et le silence. Agis par tous les moyens possibles — toujours honnetement, les sessions doivent etre reellement actives.
 
 **L'important c'est le resultat : le heartbeat doit redevenir frais.** La methode n'importe pas tant qu'elle est honnete (la session doit etre reellement active, pas simulee).
 
