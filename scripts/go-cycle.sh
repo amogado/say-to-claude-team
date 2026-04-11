@@ -46,7 +46,10 @@ while [ "$elapsed" -lt "$TIMEOUT" ]; do
     case "$rc" in
         0)
             if [ -n "$result" ] && [ "$result" != "[]" ]; then
+                echo "=== MESSAGES ==="
                 echo "$result"
+                echo "=== STATUS ==="
+                bash "$SCRIPTS_DIR/status.sh" 2>/dev/null
                 exit 0
             fi
             ;;
@@ -57,6 +60,7 @@ while [ "$elapsed" -lt "$TIMEOUT" ]; do
     esac
 done
 
-# Timeout — retourner le status pour que le GO agisse quand meme
+# Timeout — retourner le status pour que le GO agisse proactivement
+echo "=== STATUS ==="
 bash "$SCRIPTS_DIR/status.sh" 2>/dev/null
 exit 1
