@@ -103,4 +103,10 @@ chmod +x "$_INNER"
 lockf -k -t 5 "$LOCK_FILE" bash "$_INNER"
 
 RC=$(cat "$_RC")
+
+# Update .SESSION_NAME in CWD if rename succeeded
+if [ "$RC" = "0" ]; then
+    echo "$NEW_NAME" > .SESSION_NAME 2>/dev/null || true
+fi
+
 exit "$RC"

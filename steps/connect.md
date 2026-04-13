@@ -7,11 +7,13 @@
 Lance `bash <SKILL_DIR>/scripts/whoami.sh`.
 
 - Si exit 0 → deja registered. Afficher nom et bit. Proposer `/say-to-claude-team rename <nom>` si besoin.
-- Si exit 1 → demander a l'utilisateur : **"Comment veux-tu appeler cette session ?"**
-  Suggestions : nom du dossier de travail, role de la session, nom court.
+- Si exit 1 → **verifier `.SESSION_NAME` dans le repertoire courant** :
+  - Si le fichier existe et contient un nom valide → utiliser ce nom automatiquement (pas de question)
+  - Sinon → demander a l'utilisateur : **"Comment veux-tu appeler cette session ?"**
+    Suggestions : nom du dossier de travail, role de la session, nom court.
   Contrainte : `[a-zA-Z0-9_-]+`
   Puis : `bash <SKILL_DIR>/scripts/register.sh "<nom-choisi>"`
-  Noter le **bit** retourne.
+  Noter le **bit** retourne. Le script ecrit automatiquement `.SESSION_NAME` dans le CWD.
 
 ## Etape 2 : Kill les anciens agents
 

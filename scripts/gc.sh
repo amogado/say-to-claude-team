@@ -156,7 +156,7 @@ for name in $NAMES; do
         pid_dead=true
     else
         actual_start=$(get_start_time "$session_pid")
-        if [ "$actual_start" != "$session_start" ] && [ "$actual_start" != "0" ]; then
+        if [ "$actual_start" != "$session_start" ] && [ "$actual_start" != "0" ] && [ "$session_start" != "0" ]; then
             pid_dead=true  # PID recycled to a different process
         fi
     fi

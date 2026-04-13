@@ -212,5 +212,9 @@ echo "$START_TIME" > "${TEAM_QUEUE_DIR}/.sessions/${SESSION_PID}.start_time"
 touch "${TEAM_QUEUE_DIR}/.sessions/${SESSION_PID}.heartbeat"
 
 echo "Registered as '${NAME}' (bit ${BIT})" >&2
+
+# Persist session name in CWD for automatic reconnection
+echo "$NAME" > .SESSION_NAME 2>/dev/null || true
+
 echo "$BIT"
 exit 0
