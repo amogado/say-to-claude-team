@@ -3,9 +3,9 @@ set -uo pipefail
 
 # go-cycle.sh <bit> <scripts-dir>
 # Blocking wait pour le Grand Orchestrateur.
-# Poll les messages toutes les 10s. Retourne DES qu'un message arrive ou timeout 4min.
+# Attend 5 minutes (sous le idle timeout de 300s), puis retourne le status.
 # Le GO DOIT relancer ce script apres chaque cycle d'actions.
-# Exit codes: 0=messages found (JSON on stdout), 1=timeout (status on stdout), 10=not registered
+# Exit codes: 0=cycle termine (status JSON on stdout), 10=not registered
 
 if [ $# -lt 2 ]; then
     echo "Usage: $0 <bit> <scripts-dir>" >&2
@@ -16,51 +16,33 @@ BIT="$1"
 SCRIPTS_DIR="$2"
 TEAM_QUEUE_DIR="${TEAM_QUEUE_DIR:-$HOME/.claude/team-queue}"
 
-INTERVAL=10
-TIMEOUT=240  # 4 min — sous le idle timeout de 300s
-GC_INTERVAL=120
+WAIT=240  # 4 min — sous le idle timeout de 300s
 
+# Poll messages + heartbeat pendant l'attente
+POLL_INTERVAL=10   # poll toutes les 10s (GO doit etre reactif)
 elapsed=0
-gc_elapsed=0
-
-while [ "$elapsed" -lt "$TIMEOUT" ]; do
-    sleep "$INTERVAL"
-    elapsed=$((elapsed + INTERVAL))
-    gc_elapsed=$((gc_elapsed + INTERVAL))
+while [ "$elapsed" -lt "$WAIT" ]; do
+    sleep "$POLL_INTERVAL"
+    elapsed=$((elapsed + POLL_INTERVAL))
 
     # Heartbeat
     . "$SCRIPTS_DIR/_common.sh" 2>/dev/null || true
     touch "$TEAM_QUEUE_DIR/.sessions/${SESSION_PID:-$$}.heartbeat" 2>/dev/null || true
 
-    # GC periodique
-    if [ "$gc_elapsed" -ge "$GC_INTERVAL" ]; then
-        TEAM_SESSION_BIT="$BIT" bash "$SCRIPTS_DIR/gc.sh" >/dev/null 2>&1 || true
-        gc_elapsed=0
+    # Poll messages — si un message arrive, retourner immediatement
+    MSGS=$(TEAM_SESSION_BIT="$BIT" bash "$SCRIPTS_DIR/check-messages.sh" 2>/dev/null) || true
+    if [ -n "$MSGS" ] && [ "$MSGS" != "null" ] && [ "$MSGS" != "[]" ]; then
+        # Message(s) recu(s) — retourner le status + les messages pour que le GO agisse
+        echo "$MSGS"
+        echo "---"
+        bash "$SCRIPTS_DIR/status.sh" 2>/dev/null
+        exit 0
     fi
-
-    # Poll pour messages — retourne immediatement si message trouve
-    result=""
-    result=$(TEAM_SESSION_BIT="$BIT" bash "$SCRIPTS_DIR/poll.sh" 2>/dev/null)
-    rc=$?
-
-    case "$rc" in
-        0)
-            if [ -n "$result" ] && [ "$result" != "[]" ]; then
-                echo "=== MESSAGES ==="
-                echo "$result"
-                echo "=== STATUS ==="
-                bash "$SCRIPTS_DIR/status.sh" 2>/dev/null
-                exit 0
-            fi
-            ;;
-        10)
-            echo "NOT_REGISTERED" >&2
-            exit 10
-            ;;
-    esac
 done
 
-# Timeout — retourner le status pour que le GO agisse proactivement
-echo "=== STATUS ==="
+# GC avant le scan
+TEAM_SESSION_BIT="$BIT" bash "$SCRIPTS_DIR/gc.sh" 2>/dev/null || true
+
+# Retourner le status pour que le GO agisse
 bash "$SCRIPTS_DIR/status.sh" 2>/dev/null
-exit 1
+exit 0

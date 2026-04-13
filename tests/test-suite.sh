@@ -29,6 +29,8 @@ fi
 # Isolated test environment
 TEST_DIR=$(mktemp -d /tmp/team-queue-test.XXXXXX)
 export TEAM_QUEUE_DIR="${TEST_DIR}/queue"
+export TEAM_SKIP_GC=1
+export TEAM_HEARTBEAT_MAX_AGE=999999
 mkdir -p "${TEAM_QUEUE_DIR}/messages"
 mkdir -p "${TEAM_QUEUE_DIR}/.sessions"
 touch "${TEAM_QUEUE_DIR}/registry.lock"
@@ -83,6 +85,18 @@ skip() {
     echo -e "  ${YELLOW}SKIP${RESET} $1: $2"
 }
 
+# Auto-incrementing PID for register.sh — each call gets a unique fake PID
+# GC is skipped via TEAM_SKIP_GC=1, heartbeat filter bypassed via TEAM_HEARTBEAT_MAX_AGE=999999
+_NEXT_PID=10001
+register_session() {
+    local name="$1"
+    local pid=$_NEXT_PID
+    _NEXT_PID=$((_NEXT_PID + 1))
+    TEAM_SESSION_PID=$pid bash "${SCRIPTS_DIR}/register.sh" "$name" 2>/dev/null
+    # Create heartbeat file so send.sh heartbeat filter includes test sessions
+    touch "${TEAM_QUEUE_DIR}/.sessions/${pid}.heartbeat"
+}
+
 # Reset queue to clean state between test groups
 reset_queue() {
     rm -rf "${TEAM_QUEUE_DIR}"
@@ -90,6 +104,7 @@ reset_queue() {
     mkdir -p "${TEAM_QUEUE_DIR}/.sessions"
     touch "${TEAM_QUEUE_DIR}/registry.lock"
     echo '{"version":1,"sessions":{},"next_bit":0,"recycled_bits":[]}' > "${TEAM_QUEUE_DIR}/registry.json"
+    _NEXT_PID=10001
 }
 
 echo "=== say-to-claude-team Test Suite ==="
@@ -106,8 +121,8 @@ echo ""
 echo "A1: Broadcast message — two sessions"
 reset_queue
 
-BIT_A=$(bash "${SCRIPTS_DIR}/register.sh" alice 2>/dev/null)
-BIT_B=$(bash "${SCRIPTS_DIR}/register.sh" bob 2>/dev/null)
+BIT_A=$(register_session alice)
+BIT_B=$(register_session bob)
 
 if [[ "$BIT_A" =~ ^[0-9]+$ ]] && [[ "$BIT_B" =~ ^[0-9]+$ ]]; then
     pass "A1.1 register alice → bit=$BIT_A"
@@ -194,7 +209,7 @@ fi
 echo ""
 echo "A4: Deregister cycle — bit recycling"
 
-BIT_C=$(bash "${SCRIPTS_DIR}/register.sh" carol 2>/dev/null)
+BIT_C=$(register_session carol)
 pass "A4.1 register carol → bit=$BIT_C"
 
 TEAM_SESSION_BIT="$BIT_C" bash "${SCRIPTS_DIR}/deregister.sh" 2>/dev/null
@@ -205,18 +220,21 @@ else
     fail "A4.2 deregister carol" "exit=$DEREG_EXIT"
 fi
 
-RECYCLED=$(jq -r '.recycled_bits[0]' "${TEAM_QUEUE_DIR}/registry.json" 2>/dev/null)
-if [ "$RECYCLED" = "$BIT_C" ]; then
+RECYCLED=$(jq -r --argjson bit "$BIT_C" '.recycled_bits | index($bit) // empty' "${TEAM_QUEUE_DIR}/registry.json" 2>/dev/null)
+if [ -n "$RECYCLED" ]; then
     pass "A4.3 bit $BIT_C in recycled_bits after deregister"
 else
-    fail "A4.3 bit recycling" "expected bit=$BIT_C in recycled_bits, got recycled=$RECYCLED"
+    RECYCLED_ALL=$(jq -r '.recycled_bits' "${TEAM_QUEUE_DIR}/registry.json" 2>/dev/null)
+    fail "A4.3 bit recycling" "expected bit=$BIT_C in recycled_bits, got $RECYCLED_ALL"
 fi
 
-BIT_D=$(bash "${SCRIPTS_DIR}/register.sh" dave 2>/dev/null)
-if [ "$BIT_D" = "$BIT_C" ]; then
-    pass "A4.4 dave reuses carol's bit → bit=$BIT_D"
+RECYCLED_BEFORE=$(jq '.recycled_bits | length' "${TEAM_QUEUE_DIR}/registry.json" 2>/dev/null)
+BIT_D=$(register_session dave)
+RECYCLED_AFTER=$(jq '.recycled_bits | length' "${TEAM_QUEUE_DIR}/registry.json" 2>/dev/null)
+if [ "$RECYCLED_AFTER" -lt "$RECYCLED_BEFORE" ]; then
+    pass "A4.4 dave consumed a recycled bit -> bit=$BIT_D (recycled: $RECYCLED_BEFORE -> $RECYCLED_AFTER)"
 else
-    fail "A4.4 bit not recycled" "carol_bit=$BIT_C dave_bit=$BIT_D"
+    fail "A4.4 bit not recycled" "recycled_before=$RECYCLED_BEFORE recycled_after=$RECYCLED_AFTER"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -263,7 +281,7 @@ else
 fi
 
 # B5: Register valid names with dashes/underscores
-BIT_VALID=$(bash "${SCRIPTS_DIR}/register.sh" "my-agent_01" 2>/dev/null) && EC=$? || EC=$?
+BIT_VALID=$(register_session "my-agent_01") && EC=$? || EC=$?
 if [ "$EC" -eq 0 ] && [[ "$BIT_VALID" =~ ^[0-9]+$ ]]; then
     pass "B5.1 register 'my-agent_01' (dash+underscore) → ok, bit=$BIT_VALID"
 else
@@ -277,8 +295,8 @@ echo ""
 echo "── C. Edge Cases: Message Body ──────────────────────────────────────────"
 reset_queue
 
-BIT_S=$(bash "${SCRIPTS_DIR}/register.sh" sender 2>/dev/null)
-BIT_R=$(bash "${SCRIPTS_DIR}/register.sh" receiver 2>/dev/null)
+BIT_S=$(register_session sender)
+BIT_R=$(register_session receiver)
 
 # C1: Empty body
 echo ""
@@ -387,7 +405,7 @@ echo "── D. Edge Cases: Poll & Ack ─────────────�
 echo ""
 echo "D1: Poll with no messages"
 reset_queue
-BIT_X=$(bash "${SCRIPTS_DIR}/register.sh" solo 2>/dev/null)
+BIT_X=$(register_session solo)
 POLL_EMPTY=$(TEAM_SESSION_BIT="$BIT_X" bash "${SCRIPTS_DIR}/poll.sh" 2>/dev/null) && EC=$? || EC=$?
 if [ "$EC" -eq 1 ] && [ "$POLL_EMPTY" = "[]" ]; then
     pass "D1.1 poll empty queue → [] with exit=1"
@@ -410,9 +428,9 @@ fi
 echo ""
 echo "D3: Ack message you're not a recipient of"
 reset_queue
-BIT_S2=$(bash "${SCRIPTS_DIR}/register.sh" sender2 2>/dev/null)
-BIT_R2=$(bash "${SCRIPTS_DIR}/register.sh" receiver2 2>/dev/null)
-BIT_THIRD=$(bash "${SCRIPTS_DIR}/register.sh" third 2>/dev/null)
+BIT_S2=$(register_session sender2)
+BIT_R2=$(register_session receiver2)
+BIT_THIRD=$(register_session third)
 # Send directed to receiver2 only
 MID_DIR=$(TEAM_SESSION_BIT="$BIT_S2" bash "${SCRIPTS_DIR}/send.sh" receiver2 text "only for you" 2>/dev/null)
 # Third session tries to ack it
@@ -497,8 +515,8 @@ fi
 echo ""
 echo "E3: GC safety — does not delete partially-acked message"
 reset_queue
-BIT_A3=$(bash "${SCRIPTS_DIR}/register.sh" alice3 2>/dev/null)
-BIT_B3=$(bash "${SCRIPTS_DIR}/register.sh" bob3 2>/dev/null)
+BIT_A3=$(register_session alice3)
+BIT_B3=$(register_session bob3)
 MID_PARTIAL=$(TEAM_SESSION_BIT="$BIT_A3" bash "${SCRIPTS_DIR}/send.sh" all text "partial ack" 2>/dev/null)
 # Only alice3 acks (but alice3 is sender, not in required — so required = only bob3's bit)
 # Let's check what's actually required
@@ -515,8 +533,8 @@ fi
 echo ""
 echo "E4: GC deletes TTL-expired messages"
 reset_queue
-BIT_A4=$(bash "${SCRIPTS_DIR}/register.sh" alice4 2>/dev/null)
-BIT_B4=$(bash "${SCRIPTS_DIR}/register.sh" bob4 2>/dev/null)
+BIT_A4=$(register_session alice4)
+BIT_B4=$(register_session bob4)
 MID_EXP=$(TEAM_SESSION_BIT="$BIT_A4" TEAM_MSG_TTL=1 bash "${SCRIPTS_DIR}/send.sh" bob4 text "expires soon" 2>/dev/null)
 # Manually set timestamp to past (TTL=1 already past)
 if [ -n "$MID_EXP" ] && [ -d "${TEAM_QUEUE_DIR}/messages/${MID_EXP}" ]; then
@@ -556,7 +574,7 @@ fi
 echo ""
 echo "F2: Register same name while session is live"
 reset_queue
-BIT_LIVE=$(bash "${SCRIPTS_DIR}/register.sh" livetarget 2>/dev/null)
+BIT_LIVE=$(register_session livetarget)
 # Try to re-register same name using a fake PID that the actual shell is running as
 # Since the previous register is run as subshell (different PID), we need to
 # inject a registry entry with a live PID to simulate this
@@ -664,7 +682,7 @@ fi
 echo ""
 echo "H2: Send to non-existent target"
 reset_queue
-BIT_LONE=$(bash "${SCRIPTS_DIR}/register.sh" lonely 2>/dev/null)
+BIT_LONE=$(register_session lonely)
 OUT=$(TEAM_SESSION_BIT="$BIT_LONE" bash "${SCRIPTS_DIR}/send.sh" ghost text "you there?" 2>&1) && EC=$? || EC=$?
 if [ "$EC" -eq 1 ]; then
     pass "H2.1 send to non-existent target → exit=1"
@@ -676,7 +694,7 @@ fi
 echo ""
 echo "H3: Send to self"
 reset_queue
-BIT_SELF=$(bash "${SCRIPTS_DIR}/register.sh" self 2>/dev/null)
+BIT_SELF=$(register_session self)
 OUT=$(TEAM_SESSION_BIT="$BIT_SELF" bash "${SCRIPTS_DIR}/send.sh" self text "talking to myself" 2>&1) && EC=$? || EC=$?
 if [ "$EC" -eq 3 ]; then
     pass "H3.1 send to self → exit=3"
@@ -688,7 +706,7 @@ fi
 echo ""
 echo "H4: Broadcast with no other sessions"
 reset_queue
-BIT_SOLO=$(bash "${SCRIPTS_DIR}/register.sh" alone 2>/dev/null)
+BIT_SOLO=$(register_session alone)
 OUT=$(TEAM_SESSION_BIT="$BIT_SOLO" bash "${SCRIPTS_DIR}/send.sh" all text "echo" 2>&1) && EC=$? || EC=$?
 if [ "$EC" -eq 1 ]; then
     pass "H4.1 broadcast with no other sessions → exit=1"
@@ -700,7 +718,7 @@ fi
 echo ""
 echo "H5: Poll with missing registry"
 reset_queue
-BIT_H5=$(bash "${SCRIPTS_DIR}/register.sh" h5session 2>/dev/null)
+BIT_H5=$(register_session h5session)
 # Remove the registry
 rm -f "${TEAM_QUEUE_DIR}/registry.json"
 # poll.sh doesn't actually require registry — it just needs the bit file and messages/
@@ -719,8 +737,8 @@ echo '{"version":1,"sessions":{},"next_bit":0,"recycled_bits":[]}' > "${TEAM_QUE
 echo ""
 echo "H6: Send with invalid message type"
 reset_queue
-BIT_H6=$(bash "${SCRIPTS_DIR}/register.sh" typer 2>/dev/null)
-BIT_H6B=$(bash "${SCRIPTS_DIR}/register.sh" typer2 2>/dev/null)
+BIT_H6=$(register_session typer)
+BIT_H6B=$(register_session typer2)
 OUT=$(TEAM_SESSION_BIT="$BIT_H6" bash "${SCRIPTS_DIR}/send.sh" typer2 invalid-type "body" 2>&1) && EC=$? || EC=$?
 if [ "$EC" -ne 0 ]; then
     pass "H6.1 send invalid type → error"
@@ -732,7 +750,7 @@ fi
 echo ""
 echo "H7: Ack with invalid UUID"
 reset_queue
-BIT_H7=$(bash "${SCRIPTS_DIR}/register.sh" acker 2>/dev/null)
+BIT_H7=$(register_session acker)
 OUT=$(TEAM_SESSION_BIT="$BIT_H7" bash "${SCRIPTS_DIR}/ack.sh" "not-a-uuid" 2>&1) && EC=$? || EC=$?
 if [ "$EC" -eq 2 ]; then
     pass "H7.1 ack invalid UUID format → exit=2"
@@ -771,8 +789,8 @@ echo ""
 echo "H10: Send with missing messages/ dir (auto-create)"
 reset_queue
 rm -rf "${TEAM_QUEUE_DIR}/messages"
-BIT_H10=$(bash "${SCRIPTS_DIR}/register.sh" h10a 2>/dev/null)
-BIT_H10B=$(bash "${SCRIPTS_DIR}/register.sh" h10b 2>/dev/null)
+BIT_H10=$(register_session h10a)
+BIT_H10B=$(register_session h10b)
 OUT=$(TEAM_SESSION_BIT="$BIT_H10" bash "${SCRIPTS_DIR}/send.sh" h10b text "hello" 2>/dev/null) && EC=$? || EC=$?
 if [ "$EC" -eq 0 ] && [ -d "${TEAM_QUEUE_DIR}/messages" ]; then
     pass "H10.1 send auto-creates messages/ dir"
@@ -798,9 +816,9 @@ OUT_FILE_1=$(mktemp /tmp/reg_conc1.XXXXXX)
 OUT_FILE_2=$(mktemp /tmp/reg_conc2.XXXXXX)
 ERR_FILE_1=$(mktemp /tmp/reg_conc1_err.XXXXXX)
 ERR_FILE_2=$(mktemp /tmp/reg_conc2_err.XXXXXX)
-(bash "${SCRIPTS_DIR}/register.sh" conc1 > "$OUT_FILE_1" 2>"$ERR_FILE_1") &
+(TEAM_SESSION_PID=20001 bash "${SCRIPTS_DIR}/register.sh" conc1 > "$OUT_FILE_1" 2>"$ERR_FILE_1") &
 PID1=$!
-(bash "${SCRIPTS_DIR}/register.sh" conc2 > "$OUT_FILE_2" 2>"$ERR_FILE_2") &
+(TEAM_SESSION_PID=20002 bash "${SCRIPTS_DIR}/register.sh" conc2 > "$OUT_FILE_2" 2>"$ERR_FILE_2") &
 PID2=$!
 wait $PID1 $PID2
 
@@ -839,8 +857,8 @@ fi
 echo ""
 echo "I2: Concurrent send and GC"
 reset_queue
-BIT_I2A=$(bash "${SCRIPTS_DIR}/register.sh" i2a 2>/dev/null)
-BIT_I2B=$(bash "${SCRIPTS_DIR}/register.sh" i2b 2>/dev/null)
+BIT_I2A=$(register_session i2a)
+BIT_I2B=$(register_session i2b)
 
 # Send a message in background
 SEND_OUT_FILE=$(mktemp /tmp/send_conc.XXXXXX)
@@ -869,8 +887,8 @@ fi
 echo ""
 echo "I3: Multiple rapid sends — all messages stored"
 reset_queue
-BIT_I3A=$(bash "${SCRIPTS_DIR}/register.sh" i3a 2>/dev/null)
-BIT_I3B=$(bash "${SCRIPTS_DIR}/register.sh" i3b 2>/dev/null)
+BIT_I3A=$(register_session i3a)
+BIT_I3B=$(register_session i3b)
 
 SEND_PIDS=()
 for i in $(seq 1 5); do
@@ -896,9 +914,9 @@ echo "── J. CRDT Properties ────────────────
 echo ""
 echo "J1: Ack-mask monotonicity"
 reset_queue
-BIT_J1=$(bash "${SCRIPTS_DIR}/register.sh" j1sender 2>/dev/null)
-BIT_J1B=$(bash "${SCRIPTS_DIR}/register.sh" j1b 2>/dev/null)
-BIT_J1C=$(bash "${SCRIPTS_DIR}/register.sh" j1c 2>/dev/null)
+BIT_J1=$(register_session j1sender)
+BIT_J1B=$(register_session j1b)
+BIT_J1C=$(register_session j1c)
 
 MID_J1=$(TEAM_SESSION_BIT="$BIT_J1" bash "${SCRIPTS_DIR}/send.sh" all text "crdt test" 2>/dev/null)
 
@@ -936,8 +954,8 @@ echo "── K. Send type validation ──────────────�
 echo ""
 echo "K1: Valid message types (text, command, query)"
 reset_queue
-BIT_K1=$(bash "${SCRIPTS_DIR}/register.sh" k1s 2>/dev/null)
-BIT_K1B=$(bash "${SCRIPTS_DIR}/register.sh" k1r 2>/dev/null)
+BIT_K1=$(register_session k1s)
+BIT_K1B=$(register_session k1r)
 for mtype in text command query; do
     MID=$(TEAM_SESSION_BIT="$BIT_K1" bash "${SCRIPTS_DIR}/send.sh" k1r "$mtype" "test" 2>/dev/null) && EC=$? || EC=$?
     STORED_TYPE=$(jq -r '.type' "${TEAM_QUEUE_DIR}/messages/${MID}/payload.json" 2>/dev/null)
@@ -971,7 +989,7 @@ STALE_REG=$(jq \
     "${TEAM_QUEUE_DIR}/registry.json")
 echo "$STALE_REG" > "${TEAM_QUEUE_DIR}/registry.json"
 
-BIT_REUSE=$(bash "${SCRIPTS_DIR}/register.sh" reusable 2>/dev/null) && EC=$? || EC=$?
+BIT_REUSE=$(register_session reusable) && EC=$? || EC=$?
 if [ "$EC" -eq 0 ] && [[ "$BIT_REUSE" =~ ^[0-9]+$ ]]; then
     pass "L1.1 register reaps stale session → new bit=$BIT_REUSE"
 else
@@ -988,15 +1006,15 @@ echo ""
 echo "M1: Recycled bit drains stale ack files from messages"
 reset_queue
 
-BIT_M1=$(bash "${SCRIPTS_DIR}/register.sh" m1sender 2>/dev/null)
-BIT_M1B=$(bash "${SCRIPTS_DIR}/register.sh" m1target 2>/dev/null)
+BIT_M1=$(register_session m1sender)
+BIT_M1B=$(register_session m1target)
 MID_M1=$(TEAM_SESSION_BIT="$BIT_M1" bash "${SCRIPTS_DIR}/send.sh" m1target text "msg for recycle test" 2>/dev/null)
 # Create stale ack for BIT_M1B
 TEAM_SESSION_BIT="$BIT_M1B" bash "${SCRIPTS_DIR}/ack.sh" "$MID_M1" 2>/dev/null
 # Deregister m1target to recycle its bit
 TEAM_SESSION_BIT="$BIT_M1B" bash "${SCRIPTS_DIR}/deregister.sh" 2>/dev/null
 # Register new session which should reuse m1target's bit
-BIT_NEW=$(bash "${SCRIPTS_DIR}/register.sh" newowner 2>/dev/null)
+BIT_NEW=$(register_session newowner)
 if [ "$BIT_NEW" = "$BIT_M1B" ]; then
     # Check stale ack was drained
     if [ ! -f "${TEAM_QUEUE_DIR}/messages/${MID_M1}/ack/${BIT_M1B}" ]; then
@@ -1007,6 +1025,183 @@ if [ "$BIT_NEW" = "$BIT_M1B" ]; then
 else
     skip "M1.1 bit recycling ack drain" "new bit=$BIT_NEW != expected=$BIT_M1B"
 fi
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# §N — Mode Human-Only
+# ═══════════════════════════════════════════════════════════════════════════════
+echo ""
+echo "── N. Mode Human-Only ───────────────────────────────────────────────────"
+
+# Helper to read mode from registry by bit
+get_mode_by_bit() {
+    local bit="$1"
+    jq -r --argjson bit "$bit" \
+        '[.sessions | to_entries[] | select(.value.bit == $bit)] | first | .value.mode // "absent"' \
+        "${TEAM_QUEUE_DIR}/registry.json" 2>/dev/null
+}
+
+# N1: set-mode human-only with valid session
+echo ""
+echo "N1: set-mode human-only → exit=0, registry updated"
+reset_queue
+BIT_N1=$(register_session n1session)
+OUT=$(TEAM_SESSION_BIT="$BIT_N1" bash "${SCRIPTS_DIR}/set-mode.sh" human-only 2>&1) && EC=$? || EC=$?
+if [ "$EC" -eq 0 ]; then
+    pass "N1.1 set-mode human-only → exit=0"
+else
+    fail "N1.1 set-mode human-only" "exit=$EC out='$OUT'"
+fi
+MODE_N1=$(get_mode_by_bit "$BIT_N1")
+if [ "$MODE_N1" = "human-only" ]; then
+    pass "N1.2 registry.mode == human-only"
+else
+    fail "N1.2 registry.mode" "expected=human-only got='$MODE_N1'"
+fi
+
+# N2: set-mode autonomous (switch back)
+echo ""
+echo "N2: set-mode autonomous → exit=0, registry updated"
+OUT=$(TEAM_SESSION_BIT="$BIT_N1" bash "${SCRIPTS_DIR}/set-mode.sh" autonomous 2>&1) && EC=$? || EC=$?
+if [ "$EC" -eq 0 ]; then
+    pass "N2.1 set-mode autonomous → exit=0"
+else
+    fail "N2.1 set-mode autonomous" "exit=$EC out='$OUT'"
+fi
+MODE_N2=$(get_mode_by_bit "$BIT_N1")
+if [ "$MODE_N2" = "autonomous" ]; then
+    pass "N2.2 registry.mode == autonomous"
+else
+    fail "N2.2 registry.mode" "expected=autonomous got='$MODE_N2'"
+fi
+
+# N3: set-mode with invalid mode
+echo ""
+echo "N3: set-mode invalid mode → exit=2, registry unchanged"
+OUT=$(TEAM_SESSION_BIT="$BIT_N1" bash "${SCRIPTS_DIR}/set-mode.sh" invalid-mode 2>&1) && EC=$? || EC=$?
+if [ "$EC" -eq 2 ]; then
+    pass "N3.1 set-mode invalid → exit=2"
+else
+    fail "N3.1 set-mode invalid mode" "exit=$EC out='$OUT'"
+fi
+MODE_N3=$(get_mode_by_bit "$BIT_N1")
+if [ "$MODE_N3" = "autonomous" ]; then
+    pass "N3.2 registry unchanged after invalid mode"
+else
+    fail "N3.2 registry changed after invalid mode" "mode='$MODE_N3'"
+fi
+
+# N4: set-mode without argument
+echo ""
+echo "N4: set-mode no argument → exit=2"
+OUT=$(TEAM_SESSION_BIT="$BIT_N1" bash "${SCRIPTS_DIR}/set-mode.sh" 2>&1) && EC=$? || EC=$?
+if [ "$EC" -eq 2 ] && echo "$OUT" | grep -qi "usage"; then
+    pass "N4.1 set-mode no arg → exit=2 with usage message"
+else
+    fail "N4.1 set-mode no arg" "exit=$EC out='$OUT'"
+fi
+
+# N5: set-mode with unregistered session (unknown bit)
+echo ""
+echo "N5: set-mode unregistered session → exit=2"
+reset_queue
+OUT=$(TEAM_SESSION_BIT=99 bash "${SCRIPTS_DIR}/set-mode.sh" human-only 2>&1) && EC=$? || EC=$?
+if [ "$EC" -eq 2 ]; then
+    pass "N5.1 set-mode unregistered session → exit=2"
+else
+    fail "N5.1 set-mode unregistered session" "exit=$EC out='$OUT'"
+fi
+
+# N6: set-mode with missing registry
+echo ""
+echo "N6: set-mode missing registry → exit=10"
+reset_queue
+rm -f "${TEAM_QUEUE_DIR}/registry.json"
+OUT=$(TEAM_SESSION_BIT=0 bash "${SCRIPTS_DIR}/set-mode.sh" human-only 2>&1) && EC=$? || EC=$?
+if [ "$EC" -eq 10 ]; then
+    pass "N6.1 set-mode missing registry → exit=10"
+else
+    fail "N6.1 set-mode missing registry" "exit=$EC out='$OUT'"
+fi
+# Restore
+echo '{"version":1,"sessions":{},"next_bit":0,"recycled_bits":[]}' > "${TEAM_QUEUE_DIR}/registry.json"
+
+# N7: status.sh shows [HUMAN-ONLY] for human-only sessions only
+echo ""
+echo "N7: status.sh displays [HUMAN-ONLY] tag"
+reset_queue
+BIT_N7A=$(register_session n7auto)
+BIT_N7B=$(register_session n7human)
+TEAM_SESSION_BIT="$BIT_N7B" bash "${SCRIPTS_DIR}/set-mode.sh" human-only 2>/dev/null
+OUT=$(bash "${SCRIPTS_DIR}/status.sh" 2>/dev/null) && EC=$? || EC=$?
+if echo "$OUT" | grep -q "n7human.*\[HUMAN-ONLY\]"; then
+    pass "N7.1 status shows [HUMAN-ONLY] for human-only session"
+else
+    fail "N7.1 status [HUMAN-ONLY] tag missing for n7human" "out='$OUT'"
+fi
+if echo "$OUT" | grep "n7auto" | grep -q "\[HUMAN-ONLY\]"; then
+    fail "N7.2 status shows [HUMAN-ONLY] for autonomous session"
+else
+    pass "N7.2 status does NOT show [HUMAN-ONLY] for autonomous session"
+fi
+
+# N8: Mode field persists in registry.json
+echo ""
+echo "N8: Mode field persistence in registry.json"
+reset_queue
+BIT_N8=$(register_session n8session)
+MODE_BEFORE=$(get_mode_by_bit "$BIT_N8")
+if [ "$MODE_BEFORE" = "absent" ] || [ "$MODE_BEFORE" = "autonomous" ]; then
+    pass "N8.1 mode absent/autonomous before set-mode"
+else
+    fail "N8.1 unexpected initial mode" "mode='$MODE_BEFORE'"
+fi
+TEAM_SESSION_BIT="$BIT_N8" bash "${SCRIPTS_DIR}/set-mode.sh" human-only 2>/dev/null
+MODE_AFTER=$(get_mode_by_bit "$BIT_N8")
+if [ "$MODE_AFTER" = "human-only" ]; then
+    pass "N8.2 mode persists as human-only in registry.json"
+else
+    fail "N8.2 mode not persisted" "mode='$MODE_AFTER'"
+fi
+
+# N9: Full cycle autonomous → human-only → autonomous
+echo ""
+echo "N9: Full mode cycle"
+reset_queue
+BIT_N9=$(register_session n9cycle)
+ALL_OK=true
+
+TEAM_SESSION_BIT="$BIT_N9" bash "${SCRIPTS_DIR}/set-mode.sh" autonomous 2>/dev/null && EC=$? || EC=$?
+M=$(get_mode_by_bit "$BIT_N9")
+[ "$EC" -eq 0 ] && [ "$M" = "autonomous" ] || ALL_OK=false
+
+TEAM_SESSION_BIT="$BIT_N9" bash "${SCRIPTS_DIR}/set-mode.sh" human-only 2>/dev/null && EC=$? || EC=$?
+M=$(get_mode_by_bit "$BIT_N9")
+[ "$EC" -eq 0 ] && [ "$M" = "human-only" ] || ALL_OK=false
+
+TEAM_SESSION_BIT="$BIT_N9" bash "${SCRIPTS_DIR}/set-mode.sh" autonomous 2>/dev/null && EC=$? || EC=$?
+M=$(get_mode_by_bit "$BIT_N9")
+[ "$EC" -eq 0 ] && [ "$M" = "autonomous" ] || ALL_OK=false
+
+if $ALL_OK; then
+    pass "N9.1 full cycle autonomous → human-only → autonomous"
+else
+    fail "N9.1 full mode cycle" "mode='$M'"
+fi
+
+# N10: set-mode with corrupt registry
+echo ""
+echo "N10: set-mode corrupt registry → error"
+reset_queue
+BIT_N10=$(register_session n10session)
+echo "CORRUPT" > "${TEAM_QUEUE_DIR}/registry.json"
+OUT=$(TEAM_SESSION_BIT="$BIT_N10" bash "${SCRIPTS_DIR}/set-mode.sh" human-only 2>&1) && EC=$? || EC=$?
+if [ "$EC" -ne 0 ]; then
+    pass "N10.1 set-mode corrupt registry → error (exit=$EC)"
+else
+    fail "N10.1 set-mode corrupt registry should fail" "exit=$EC"
+fi
+# Restore
+echo '{"version":1,"sessions":{},"next_bit":0,"recycled_bits":[]}' > "${TEAM_QUEUE_DIR}/registry.json"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Summary

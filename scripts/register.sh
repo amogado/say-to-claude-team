@@ -28,9 +28,11 @@ mkdir -p "${TEAM_QUEUE_DIR}/.sessions"
 mkdir -p "${TEAM_QUEUE_DIR}/messages"
 touch "${TEAM_QUEUE_DIR}/registry.lock"
 
-# GC before registering — clean up dead sessions first
-TEAM_SESSION_BIT="${TEAM_SESSION_BIT:-0}" bash "$(dirname "${BASH_SOURCE[0]}")/gc.sh" >/dev/null 2>&1 || true
-sleep 1
+# GC before registering — clean up dead sessions first (skip if TEAM_SKIP_GC is set)
+if [ -z "${TEAM_SKIP_GC:-}" ]; then
+    TEAM_SESSION_BIT="${TEAM_SESSION_BIT:-0}" bash "$(dirname "${BASH_SOURCE[0]}")/gc.sh" >/dev/null 2>&1 || true
+    sleep 1
+fi
 
 # Get process start time as epoch seconds (macOS)
 get_start_time() {
@@ -207,6 +209,7 @@ fi
 # Use resolved Claude PID so all scripts spawned by the same session share the same files
 echo "$BIT" > "${TEAM_QUEUE_DIR}/.sessions/${SESSION_PID}.bit"
 echo "$START_TIME" > "${TEAM_QUEUE_DIR}/.sessions/${SESSION_PID}.start_time"
+touch "${TEAM_QUEUE_DIR}/.sessions/${SESSION_PID}.heartbeat"
 
 echo "Registered as '${NAME}' (bit ${BIT})" >&2
 echo "$BIT"

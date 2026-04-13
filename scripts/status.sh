@@ -37,7 +37,7 @@ echo "--- Sessions (${SESSION_COUNT} registered) ---"
 
 if [ "$SESSION_COUNT" -gt 0 ]; then
     SESSIONS_DIR="${TEAM_QUEUE_DIR}/.sessions"
-    echo "$REGISTRY" | jq -r '.sessions | to_entries[] | "\(.key) \(.value.bit) \(.value.pid)"' | while read -r name bit pid; do
+    echo "$REGISTRY" | jq -r '.sessions | to_entries[] | "\(.key)\t\(.value.bit)\t\(.value.pid)\t\(.value.mode // "autonomous")\t\(.value.summary // "")"' | while IFS=$'\t' read -r name bit pid mode summary; do
         # Heartbeat from .sessions/<PID>.heartbeat file mtime
         hb_file="${SESSIONS_DIR}/${pid}.heartbeat"
         if [ -f "$hb_file" ]; then
@@ -49,7 +49,15 @@ if [ "$SESSION_COUNT" -gt 0 ]; then
         else
             hb_rel="no heartbeat"
         fi
-        echo "  ${name}  bit=${bit}  pid=${pid}  heartbeat=${hb_rel}"
+        mode_tag=""
+        if [ "$mode" = "human-only" ]; then
+            mode_tag="  [HUMAN-ONLY]"
+        fi
+        summary_tag=""
+        if [ -n "$summary" ]; then
+            summary_tag="  -- ${summary}"
+        fi
+        echo "  ${name}  bit=${bit}  pid=${pid}  heartbeat=${hb_rel}${mode_tag}${summary_tag}"
     done
 fi
 echo ""

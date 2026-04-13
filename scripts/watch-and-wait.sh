@@ -14,7 +14,7 @@ fi
 BIT="$1"
 SCRIPTS_DIR="$2"
 
-INTERVAL=10        # secondes entre chaque poll
+INTERVAL=3         # secondes entre chaque poll (reduit de 10s pour meilleure latence)
 TIMEOUT=240        # 4 min — sous le idle timeout de 300s de SessionIdleManager
 GC_INTERVAL=300    # GC toutes les 5 minutes
 
@@ -31,10 +31,8 @@ while [ "$elapsed" -lt "$TIMEOUT" ]; do
 
     # Heartbeat — signal que la session est vivante
     TEAM_QUEUE_DIR="${TEAM_QUEUE_DIR:-$HOME/.claude/team-queue}"
-    if [ -z "${SESSION_PID:-}" ]; then
-        . "$SCRIPTS_DIR/_common.sh" 2>/dev/null || true
-    fi
-    [ -n "${SESSION_PID:-}" ] && touch "$TEAM_QUEUE_DIR/.sessions/${SESSION_PID}.heartbeat" 2>/dev/null || true
+    . "$SCRIPTS_DIR/_common.sh" 2>/dev/null || true
+    touch "$TEAM_QUEUE_DIR/.sessions/${SESSION_PID:-$$}.heartbeat" 2>/dev/null || true
 
     # GC toutes les 5 minutes
     if [ "$gc_elapsed" -ge "$GC_INTERVAL" ]; then

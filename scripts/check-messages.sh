@@ -32,7 +32,6 @@ BIT_FILE="$SESSIONS_DIR/${SESSION_PID}.bit"
 MY_BIT="$(< "$BIT_FILE")"
 
 # Update heartbeat — non-blocking, best-effort
-# Update heartbeat — non-blocking, best-effort
 touch "$SESSIONS_DIR/${SESSION_PID}.heartbeat" 2>/dev/null || true
 
 # Scan messages directory for unread messages targeting our bit

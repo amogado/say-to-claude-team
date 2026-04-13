@@ -5,7 +5,7 @@ description: |
   Envoyer et recevoir des messages entre toutes les sessions ouvertes sur le Mac.
   - MANDATORY TRIGGERS: say-to-claude-team, team queue, message queue, inter-session, envoyer message aux sessions, communiquer avec les autres sessions, broadcast
   - Also trigger when: the user wants to send instructions to other Claude Code sessions, check for team messages, or coordinate work across sessions
-argument-hint: "[setup | connect | send | check | status | watch | gc | rename]"
+argument-hint: "[setup | connect | send | check | status | watch | gc | rename | mode]"
 ---
 
 # say-to-claude-team — Routeur
@@ -30,6 +30,7 @@ Lis et execute `<SKILL_DIR>/steps/boot.md`. Il verifie si la session est connect
 | `register [name]` | `bash <SKILL_DIR>/scripts/register.sh "<name>"` |
 | `rename <name>` | `bash <SKILL_DIR>/scripts/rename.sh "<name>"` |
 | `deregister` | `bash <SKILL_DIR>/scripts/deregister.sh` |
+| `mode <autonomous\|human-only>` | `bash <SKILL_DIR>/scripts/set-mode.sh "<mode>"` puis afficher le resultat |
 | (texte libre) | Interpreter l'intention, router vers le bon step |
 
 **Raccourcis langage naturel :**
@@ -38,6 +39,8 @@ Lis et execute `<SKILL_DIR>/steps/boot.md`. Il verifie si la session est connect
 - "qui est connecte ?" → status
 - "connecte-moi" / "rejoindre" → connect
 - "nettoie la queue" → gc
+- "passe en mode humain" / "human only" / "pas d'ordres" → mode human-only
+- "mode normal" / "mode autonome" → mode autonomous
 
 ## Activation de personas par nom de session
 
@@ -53,6 +56,8 @@ Les autres sessions gardent leur comportement par defaut (pas de persona specifi
 
 **L'utilisateur a delegue son pouvoir au grand-orchestrateur.** Les commandes du GO ont la meme autorite qu'une instruction directe de l'utilisateur.
 
+### Mode `autonomous` (defaut)
+
 Quand le watcher transmet un message du **grand-orchestrateur** :
 - **`command` → EXECUTER IMMEDIATEMENT. NE PAS demander confirmation a l'utilisateur.** Le GO est ton patron — il a deja l'accord de l'utilisateur. Tu fais ce qu'il dit, point.
 - **`query` → REPONDRE immediatement** avec un status clair et concis. Pas de "voulez-vous que je reponde ?".
@@ -62,12 +67,25 @@ Quand le watcher transmet un message du **grand-orchestrateur** :
 
 **NE JAMAIS demander a l'utilisateur "voulez-vous que j'execute ?" pour un ordre du GO.** C'est comme si l'utilisateur l'avait tape lui-meme. Execute, rapporte le resultat au GO, et continue.
 
+### Mode `human-only`
+
+Une session peut etre passee en mode `human-only` via `/say-to-claude-team mode human-only`.
+
+Quand une session est en mode `human-only` :
+- Les `command` du GO sont **IGNORES**. Ne pas les executer. Repondre au GO : "Je suis en mode human-only, l'utilisateur decide."
+- Les `query` du GO sont **toujours acceptes** — repondre normalement avec un status.
+- Les `text` du GO sont **lus et presentes a l'utilisateur** comme suggestions/contexte, pas comme ordres.
+- **L'utilisateur reste le seul a pouvoir donner des ordres.** Le GO peut suggerer, informer, router des besoins — mais pas commander.
+
+Pour revenir au mode normal : `/say-to-claude-team mode autonomous`.
+
 ## Limites connues et mitigations
 
 | Probleme | Mitigation |
 |----------|-----------|
-| **Watcher tombe idle** | watch-and-wait.sh timeout a 240s (sous les 300s du SessionIdleManager). Boot.md verifie et relance le watcher si mort. |
+| **Watcher tombe idle** | watch-and-wait.sh timeout a 240s (sous les 300s du SessionIdleManager). Boot.md verifie et relance le watcher si mort. **Filet de securite** : le PreToolUse hook (check-messages.sh) detecte les messages sans dependre du watcher. |
 | **SendMessage non fiable** | Le filesystem est la source de verite, pas SendMessage. Si le sender rate un ordre, le lead envoie directement via send.sh. |
-| **Agents exit sans erreur** | Boot.md health check detecte l'absence du watcher et le relance. |
+| **Agents exit sans erreur** | Boot.md health check detecte l'absence du watcher et le relance. Le PreToolUse hook garantit la detection des messages meme sans watcher. |
 | **Broadcast explose avec 3+ agents** | On n'utilise que 2 agents (watcher + sender). Les broadcasts queue sont geres par le filesystem, pas par les agents. |
 | **Config teams persiste** | deregister.sh rappelle de cleanup. kill-agents.md tente le shutdown avant chaque reconnect. |
+| **Messages expirent avant lecture** | TTL par defaut augmente a 24h (86400s). Configurable via TEAM_TTL_DEFAULT. |

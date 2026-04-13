@@ -130,6 +130,25 @@ if [[ -f "$SETTINGS" ]]; then
         }' "$SETTINGS" > "$TMP_SETTINGS" && mv "$TMP_SETTINGS" "$SETTINGS"
         echo "  [OK] SessionStart hook added (auto-register at session start)"
     fi
+
+    # Configure PreToolUse hook for passive message checking
+    if jq -e '.hooks.PreToolUse | length > 0' "$SETTINGS" &>/dev/null; then
+        echo "  [SKIP] PreToolUse hook already configured"
+    else
+        TMP_SETTINGS=$(mktemp "${TMPDIR:-/tmp}/settings_$$.XXXXXX")
+        jq '.hooks.PreToolUse = [
+          {
+            "matcher": "",
+            "hooks": [
+              {
+                "type": "command",
+                "command": "bash $HOME/.claude/skills/say-to-claude-team/scripts/check-messages.sh 2>/dev/null; true"
+              }
+            ]
+          }
+        ]' "$SETTINGS" > "$TMP_SETTINGS" && mv "$TMP_SETTINGS" "$SETTINGS"
+        echo "  [OK] PreToolUse hook added (passive message checking before every tool)"
+    fi
 else
     echo "  [WARN] $SETTINGS not found — hook not configured"
 fi
@@ -248,8 +267,9 @@ echo "  Queue:   $TEAM_QUEUE_DIR"
 echo "  Scripts: $SCRIPTS_DIR"
 echo ""
 echo "  Hook SessionStart: auto-register chaque session au demarrage"
+echo "  Hook PreToolUse: verifie les messages avant chaque outil (filet de securite)"
 echo "  Shell alias: claude lance automatiquement /say-to-claude-team connect"
 echo "  Statusline: affiche session name, bit, messages, heartbeat"
-echo "  Watcher: se lance automatiquement via connect"
+echo "  Watcher: se lance automatiquement via connect (bonus, pas requis)"
 echo ""
 echo "Commandes: /say-to-claude-team [setup | send | check | status | watch | gc]"

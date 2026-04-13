@@ -8,7 +8,7 @@ set -euo pipefail
 TEAM_QUEUE_DIR="${TEAM_QUEUE_DIR:-$HOME/.claude/team-queue}"
 # shellcheck source=_common.sh
 . "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
-TEAM_TTL_DEFAULT="${TEAM_TTL_DEFAULT:-3600}"
+TEAM_TTL_DEFAULT="${TEAM_TTL_DEFAULT:-86400}"
 TEAM_MSG_PRIORITY="${TEAM_MSG_PRIORITY:-normal}"
 TEAM_MSG_TTL="${TEAM_MSG_TTL:-$TEAM_TTL_DEFAULT}"
 TEAM_MSG_REPLY_TO="${TEAM_MSG_REPLY_TO:-null}"
@@ -64,12 +64,39 @@ if ! REGISTRY=$(jq '.' "$REGISTRY_FILE" 2>/dev/null); then
 fi
 
 # Compute required bitmask (no lock — snapshot read is sufficient)
+# Filter out sessions with stale heartbeats (file mtime > 1h) to avoid
+# including effectively-dead sessions that would block GC of the message.
+SESSIONS_DIR="${TEAM_QUEUE_DIR}/.sessions"
+HEARTBEAT_MAX_AGE="${TEAM_HEARTBEAT_MAX_AGE:-3600}"
+NOW_EPOCH=$(date +%s)
+
+is_heartbeat_fresh() {
+    local pid="$1"
+    local hb_file="${SESSIONS_DIR}/${pid}.heartbeat"
+    if [ ! -f "$hb_file" ]; then
+        return 1  # No heartbeat file → stale
+    fi
+    local hb_mtime
+    hb_mtime=$(stat -f "%m" "$hb_file" 2>/dev/null) || return 1
+    local age=$(( NOW_EPOCH - hb_mtime ))
+    [ "$age" -le "$HEARTBEAT_MAX_AGE" ]
+}
+
 if [ "$TARGET" = "all" ]; then
-    # All active sessions except sender
-    REQUIRED=$(echo "$REGISTRY" | jq \
-        --argjson mybit "$MY_BIT" \
-        '[.sessions | to_entries[] | select(.value.bit != $mybit) | .value.bit] |
-         reduce .[] as $b (0; . + (1 * pow(2; $b))) | floor')
+    # All active sessions except sender, filtered by heartbeat freshness
+    REQUIRED=0
+    SKIPPED_STALE=0
+    while IFS=' ' read -r name bit pid; do
+        [ "$bit" = "$MY_BIT" ] && continue
+        if is_heartbeat_fresh "$pid"; then
+            REQUIRED=$(( REQUIRED | (1 << bit) ))
+        else
+            SKIPPED_STALE=$((SKIPPED_STALE + 1))
+        fi
+    done < <(echo "$REGISTRY" | jq -r '.sessions | to_entries[] | "\(.key) \(.value.bit) \(.value.pid)"')
+    if [ "$SKIPPED_STALE" -gt 0 ]; then
+        echo "Note: skipped $SKIPPED_STALE session(s) with stale heartbeat (>${HEARTBEAT_MAX_AGE}s)" >&2
+    fi
 else
     # Directed message to a specific session
     TARGET_BIT=$(echo "$REGISTRY" | jq -r \
