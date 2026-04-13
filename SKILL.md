@@ -5,7 +5,7 @@ description: |
   Envoyer et recevoir des messages entre toutes les sessions ouvertes sur le Mac.
   - MANDATORY TRIGGERS: say-to-claude-team, team queue, message queue, inter-session, envoyer message aux sessions, communiquer avec les autres sessions, broadcast
   - Also trigger when: the user wants to send instructions to other Claude Code sessions, check for team messages, or coordinate work across sessions
-argument-hint: "[setup | connect | send | check | status | watch | gc | rename | mode]"
+argument-hint: "[setup | connect | send | check | status | watch | gc | rename | mode | refresh]"
 ---
 
 # say-to-claude-team — Routeur
@@ -31,6 +31,7 @@ Lis et execute `<SKILL_DIR>/steps/boot.md`. Il verifie si la session est connect
 | `rename <name>` | `bash <SKILL_DIR>/scripts/rename.sh "<name>"` |
 | `deregister` | `bash <SKILL_DIR>/scripts/deregister.sh` |
 | `mode <autonomous\|human-only>` | `bash <SKILL_DIR>/scripts/set-mode.sh "<mode>"` puis afficher le resultat |
+| `refresh` | `<SKILL_DIR>/steps/refresh.md` |
 | (texte libre) | Interpreter l'intention, router vers le bon step |
 
 **Raccourcis langage naturel :**
@@ -41,6 +42,7 @@ Lis et execute `<SKILL_DIR>/steps/boot.md`. Il verifie si la session est connect
 - "nettoie la queue" → gc
 - "passe en mode humain" / "human only" / "pas d'ordres" → mode human-only
 - "mode normal" / "mode autonome" → mode autonomous
+- "relis les regles" / "reload" / "refresh" → refresh
 
 ## Activation de personas par nom de session
 
