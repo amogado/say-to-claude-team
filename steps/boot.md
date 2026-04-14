@@ -17,6 +17,6 @@ bash <SKILL_DIR>/scripts/whoami.sh
 Verifie si le watcher tourne. Regarde si tu as un teammate nomme "queue-watcher" visible (dans la barre en bas ou dans tes teammates connus).
 
 - Si oui → OK, retourne au routeur.
-- Si non (pas de watcher actif) → relance le watcher silencieusement. Lis `<SKILL_DIR>/steps/launch-agents.md` et execute seulement la partie watcher.
+- Si non (pas de watcher actif) → relance le watcher silencieusement. Lis `<SKILL_DIR>/steps/connect/3-launch-agents.md` et execute seulement la partie watcher.
 
 **Ne PAS relancer le sender s'il n'est pas actif** — le lead peut envoyer directement via send.sh.

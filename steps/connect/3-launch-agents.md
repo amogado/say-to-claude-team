@@ -1,6 +1,6 @@
-# Launch Agents — Spawner le watcher et le sender
+# Connect 3/5 — Lancer les nouveaux agents
 
-**Pre-requis : les anciens agents doivent etre morts (voir kill-agents.md).**
+**Pre-requis : les anciens agents doivent etre morts (etape 2).**
 
 ## Recuperer le bit
 
@@ -53,6 +53,6 @@ Agent(
 )
 ```
 
-## Retour
+---
 
-Retourner a `connect.md` etape 4.
+**Suite → lis `<SKILL_DIR>/steps/connect/4-confirm.md`**

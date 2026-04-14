@@ -1,4 +1,4 @@
-# Kill Agents — Arreter les anciens watcher/sender
+# Connect 2/5 — Kill les anciens agents
 
 **BLOQUANT. Tu ne dois PAS lire un autre fichier tant que cette etape n'est pas terminee.**
 
@@ -6,7 +6,7 @@
 
 Regarde si tu es deja dans une team (tu le sais si TeamCreate echoue avec "Already leading team", ou si tu as des teammates visibles dans la barre en bas de l'ecran).
 
-**Si tu n'as PAS de team ou PAS de teammates** → cette etape est terminee, retourne a connect.md etape 3.
+**Si tu n'as PAS de team ou PAS de teammates** → cette etape est terminee, passe directement a la suite.
 
 **Ne PAS lire les fichiers dans ~/.claude/teams/** — ils contiennent les teams de TOUTES les sessions, pas seulement la tienne.
 
@@ -28,6 +28,6 @@ Pour chaque agent, attendre `shutdown_approved` ou `teammate_terminated`.
 Si apres 15 secondes un agent n'a pas confirme → envoie un DEUXIEME shutdown_request.
 Si apres 30 secondes il n'a toujours pas confirme → considere-le comme mort et continue.
 
-## Fin
+---
 
-Retourne a connect.md etape 3.
+**Suite → lis `<SKILL_DIR>/steps/connect/3-launch-agents.md`**

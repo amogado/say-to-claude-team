@@ -19,7 +19,7 @@ Toute modification faite dans le skills dir sera **ecrasee** au prochain `skill 
 
 ```
 scripts/          # Scripts bash (send.sh, watch-and-wait.sh, etc.)
-steps/            # Steps du routeur (boot.md, connect.md, etc.)
+steps/            # Steps du routeur (boot.md, connect.md, connect/, etc.)
 agents/           # Definitions d'agents (grand-orchestrateur.md, etc.)
 tests/            # Test suite (test-suite.sh)
 SKILL.md          # Definition du skill (routeur principal)

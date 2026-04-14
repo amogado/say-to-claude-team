@@ -89,5 +89,5 @@ Pour revenir au mode normal : `/say-to-claude-team mode autonomous`.
 | **SendMessage non fiable** | Le filesystem est la source de verite, pas SendMessage. Si le sender rate un ordre, le lead envoie directement via send.sh. |
 | **Agents exit sans erreur** | Boot.md health check detecte l'absence du watcher et le relance. Le PreToolUse hook garantit la detection des messages meme sans watcher. |
 | **Broadcast explose avec 3+ agents** | On n'utilise que 2 agents (watcher + sender). Les broadcasts queue sont geres par le filesystem, pas par les agents. |
-| **Config teams persiste** | deregister.sh rappelle de cleanup. kill-agents.md tente le shutdown avant chaque reconnect. |
+| **Config teams persiste** | deregister.sh rappelle de cleanup. connect/2-kill-agents.md tente le shutdown avant chaque reconnect. |
 | **Messages expirent avant lecture** | TTL par defaut augmente a 24h (86400s). Configurable via TEAM_TTL_DEFAULT. |
